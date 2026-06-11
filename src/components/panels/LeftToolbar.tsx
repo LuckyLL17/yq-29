@@ -1,0 +1,463 @@
+import { useRef } from 'react';
+import {
+  Upload,
+  Layers,
+  Ruler,
+  CircleDot,
+  Clock,
+  RotateCcw,
+  Grid3X3,
+  MoveUp,
+  Eye,
+  Play,
+  Pause,
+} from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
+import { loadModelFromFile, createSampleBoxModel, createSampleBowlModel } from '@/utils/modelLoader';
+import { analyzeDraftAngles } from '@/utils/draftAngle';
+import { analyzeWallThickness } from '@/utils/wallThickness';
+import { planDrainHoles } from '@/utils/drainHoles';
+import { estimateMoldingCycle, MATERIAL_OPTIONS } from '@/utils/moldingCycle';
+import type { AnalysisMode, VisualizationMode } from '@/types';
+
+const tools = [
+  { id: 'draft', label: '脱模角度', icon: MoveUp },
+  { id: 'thickness', label: '壁厚分析', icon: Ruler },
+  { id: 'holes', label: '滤水孔', icon: CircleDot },
+  { id: 'cycle', label: '成型周期', icon: Clock },
+] as const;
+
+export function LeftToolbar() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const model = useAppStore((state) => state.model);
+  const setModel = useAppStore((state) => state.setModel);
+  const setIsLoading = useAppStore((state) => state.setIsLoading);
+  const analysisMode = useAppStore((state) => state.analysisMode);
+  const setAnalysisMode = useAppStore((state) => state.setAnalysisMode);
+  const visualizationMode = useAppStore((state) => state.visualizationMode);
+  const setVisualizationMode = useAppStore((state) => state.setVisualizationMode);
+
+  const draftAngleThreshold = useAppStore((state) => state.draftAngleThreshold);
+  const setDraftAngleThreshold = useAppStore((state) => state.setDraftAngleThreshold);
+  const draftDirection = useAppStore((state) => state.draftDirection);
+  const setDraftDirection = useAppStore((state) => state.setDraftDirection);
+  const setDraftAngleResult = useAppStore((state) => state.setDraftAngleResult);
+
+  const thicknessSampleCount = useAppStore((state) => state.thicknessSampleCount);
+  const setThicknessSampleCount = useAppStore((state) => state.setThicknessSampleCount);
+  const setWallThicknessResult = useAppStore((state) => state.setWallThicknessResult);
+
+  const holeDiameter = useAppStore((state) => state.holeDiameter);
+  const setHoleDiameter = useAppStore((state) => state.setHoleDiameter);
+  const holeSpacing = useAppStore((state) => state.holeSpacing);
+  const setHoleSpacing = useAppStore((state) => state.setHoleSpacing);
+  const setDrainHoleResult = useAppStore((state) => state.setDrainHoleResult);
+
+  const cycleParameters = useAppStore((state) => state.cycleParameters);
+  const setCycleParameters = useAppStore((state) => state.setCycleParameters);
+  const setCycleResult = useAppStore((state) => state.setCycleResult);
+
+  const showGrid = useAppStore((state) => state.showGrid);
+  const setShowGrid = useAppStore((state) => state.setShowGrid);
+  const showAxes = useAppStore((state) => state.showAxes);
+  const setShowAxes = useAppStore((state) => state.setShowAxes);
+  const autoRotate = useAppStore((state) => state.autoRotate);
+  const setAutoRotate = useAppStore((state) => state.setAutoRotate);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      const modelData = await loadModelFromFile(file);
+      setModel(modelData, file.name);
+    } catch (error) {
+      console.error('模型加载失败:', error);
+      alert('模型加载失败，请检查文件格式');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLoadSample = (type: 'box' | 'bowl') => {
+    setIsLoading(true);
+    setTimeout(() => {
+      const sampleModel = type === 'box' ? createSampleBoxModel() : createSampleBowlModel();
+      setModel(sampleModel, type === 'box' ? '示例盒状模型' : '示例碗状模型');
+      setIsLoading(false);
+    }, 300);
+  };
+
+  const runAnalysis = (mode: AnalysisMode) => {
+    if (!model) {
+      alert('请先导入模型');
+      return;
+    }
+
+    setIsLoading(true);
+    setAnalysisMode(mode);
+
+    setTimeout(() => {
+      try {
+        switch (mode) {
+          case 'draft': {
+            const result = analyzeDraftAngles(model, draftDirection, draftAngleThreshold);
+            setDraftAngleResult(result);
+            break;
+          }
+          case 'thickness': {
+            const result = analyzeWallThickness(model, thicknessSampleCount);
+            setWallThicknessResult(result);
+            break;
+          }
+          case 'holes': {
+            const result = planDrainHoles(model, holeDiameter, holeSpacing);
+            setDrainHoleResult(result);
+            break;
+          }
+          case 'cycle': {
+            const result = estimateMoldingCycle(cycleParameters, cycleParameters.targetThickness);
+            setCycleResult(result);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('分析失败:', error);
+        alert('分析失败，请重试');
+      } finally {
+        setIsLoading(false);
+      }
+    }, 100);
+  };
+
+  return (
+    <div className="w-72 h-full bg-slate-900 border-r border-slate-800 flex flex-col overflow-hidden">
+      <div className="p-4 border-b border-slate-800">
+        <h3 className="text-sm font-semibold text-slate-200 mb-3">模型导入</h3>
+        <div className="space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".stl,.obj"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Upload size={16} />
+            导入模型
+          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleLoadSample('box')}
+              className="flex-1 px-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors"
+            >
+              盒状示例
+            </button>
+            <button
+              onClick={() => handleLoadSample('bowl')}
+              className="flex-1 px-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors"
+            >
+              碗状示例
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 border-b border-slate-800">
+        <h3 className="text-sm font-semibold text-slate-200 mb-3">分析工具</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {tools.map((tool) => {
+            const Icon = tool.icon;
+            const isActive = analysisMode === tool.id;
+            return (
+              <button
+                key={tool.id}
+                onClick={() => runAnalysis(tool.id as AnalysisMode)}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-lg transition-all ${
+                  isActive
+                    ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
+                    : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-slate-300'
+                }`}
+              >
+                <Icon size={20} />
+                <span className="text-xs font-medium">{tool.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {analysisMode === 'draft' && (
+        <div className="p-4 border-b border-slate-800">
+          <h3 className="text-sm font-semibold text-slate-200 mb-3">脱模角度设置</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                最小脱模角: {draftAngleThreshold}°
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="15"
+                step="0.5"
+                value={draftAngleThreshold}
+                onChange={(e) => setDraftAngleThreshold(parseFloat(e.target.value))}
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">脱模方向</label>
+              <div className="flex gap-2">
+                {[
+                  { label: '+Y', dir: { x: 0, y: 1, z: 0 } },
+                  { label: '-Y', dir: { x: 0, y: -1, z: 0 } },
+                  { label: '+Z', dir: { x: 0, y: 0, z: 1 } },
+                  { label: '-Z', dir: { x: 0, y: 0, z: -1 } },
+                ].map((opt) => (
+                  <button
+                    key={opt.label}
+                    onClick={() => setDraftDirection(opt.dir)}
+                    className={`flex-1 py-1.5 text-xs rounded transition-colors ${
+                      draftDirection.y === opt.dir.y &&
+                      draftDirection.z === opt.dir.z &&
+                      draftDirection.x === opt.dir.x
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => runAnalysis('draft')}
+              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+            >
+              重新计算
+            </button>
+          </div>
+        </div>
+      )}
+
+      {analysisMode === 'thickness' && (
+        <div className="p-4 border-b border-slate-800">
+          <h3 className="text-sm font-semibold text-slate-200 mb-3">壁厚分析设置</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                采样点数: {thicknessSampleCount}
+              </label>
+              <input
+                type="range"
+                min="100"
+                max="2000"
+                step="100"
+                value={thicknessSampleCount}
+                onChange={(e) => setThicknessSampleCount(parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+            <button
+              onClick={() => runAnalysis('thickness')}
+              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+            >
+              重新计算
+            </button>
+          </div>
+        </div>
+      )}
+
+      {analysisMode === 'holes' && (
+        <div className="p-4 border-b border-slate-800">
+          <h3 className="text-sm font-semibold text-slate-200 mb-3">滤水孔设置</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                孔径: {holeDiameter}mm
+              </label>
+              <input
+                type="range"
+                min="1"
+                max="8"
+                step="0.5"
+                value={holeDiameter}
+                onChange={(e) => setHoleDiameter(parseFloat(e.target.value))}
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                孔间距: {holeSpacing}mm
+              </label>
+              <input
+                type="range"
+                min="5"
+                max="40"
+                step="1"
+                value={holeSpacing}
+                onChange={(e) => setHoleSpacing(parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+            <button
+              onClick={() => runAnalysis('holes')}
+              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+            >
+              重新计算
+            </button>
+          </div>
+        </div>
+      )}
+
+      {analysisMode === 'cycle' && (
+        <div className="p-4 border-b border-slate-800">
+          <h3 className="text-sm font-semibold text-slate-200 mb-3">工艺参数</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">材料类型</label>
+              <select
+                value={cycleParameters.materialType}
+                onChange={(e) => setCycleParameters({ materialType: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+              >
+                {MATERIAL_OPTIONS.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                目标壁厚: {cycleParameters.targetThickness}mm
+              </label>
+              <input
+                type="range"
+                min="0.5"
+                max="5"
+                step="0.1"
+                value={cycleParameters.targetThickness}
+                onChange={(e) =>
+                  setCycleParameters({ targetThickness: parseFloat(e.target.value) })
+                }
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                成型温度: {cycleParameters.temperature}°C
+              </label>
+              <input
+                type="range"
+                min="120"
+                max="250"
+                step="5"
+                value={cycleParameters.temperature}
+                onChange={(e) =>
+                  setCycleParameters({ temperature: parseInt(e.target.value) })
+                }
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">
+                成型压力: {cycleParameters.pressure}MPa
+              </label>
+              <input
+                type="range"
+                min="0.2"
+                max="1.5"
+                step="0.1"
+                value={cycleParameters.pressure}
+                onChange={(e) =>
+                  setCycleParameters({ pressure: parseFloat(e.target.value) })
+                }
+                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+            <button
+              onClick={() => runAnalysis('cycle')}
+              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+            >
+              重新计算
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="p-4 flex-1 overflow-y-auto">
+        <h3 className="text-sm font-semibold text-slate-200 mb-3">视图设置</h3>
+        <div className="space-y-2">
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">显示模式</label>
+            <div className="flex gap-2">
+              {[
+                { id: 'solid', label: '实体', icon: Layers },
+                { id: 'wireframe', label: '线框', icon: Grid3X3 },
+                { id: 'xray', label: 'X光', icon: Eye },
+              ].map((mode) => {
+                const Icon = mode.icon;
+                const isActive = visualizationMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => setVisualizationMode(mode.id as VisualizationMode)}
+                    className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-colors ${
+                      isActive
+                        ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
+                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span className="text-xs">{mode.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => setShowGrid(!showGrid)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-colors ${
+                showGrid
+                  ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <Grid3X3 size={14} />
+              网格
+            </button>
+            <button
+              onClick={() => setShowAxes(!showAxes)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-colors ${
+                showAxes
+                  ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <RotateCcw size={14} />
+              坐标轴
+            </button>
+            <button
+              onClick={() => setAutoRotate(!autoRotate)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-colors ${
+                autoRotate
+                  ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              {autoRotate ? <Pause size={14} /> : <Play size={14} />}
+              旋转
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
