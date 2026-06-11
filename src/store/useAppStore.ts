@@ -12,6 +12,8 @@ import type {
   SectionPlane,
   SectionResult,
   SectionAxis,
+  CompareMode,
+  ModelDiffResult,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -19,9 +21,17 @@ export type DialogType = 'none' | 'project' | 'settings' | 'help';
 interface AppState {
   model: ModelData | null;
   modelFileName: string;
+  model2: ModelData | null;
+  model2FileName: string;
   isLoading: boolean;
   analysisMode: AnalysisMode;
   visualizationMode: VisualizationMode;
+  compareMode: CompareMode;
+  modelDiffResult: ModelDiffResult | null;
+  model1Opacity: number;
+  model2Opacity: number;
+  model1Color: string;
+  model2Color: string;
   isDarkMode: boolean;
   activeDialog: DialogType;
 
@@ -48,9 +58,16 @@ interface AppState {
   sectionThicknessResolution: number;
 
   setModel: (model: ModelData | null, fileName?: string) => void;
+  setModel2: (model: ModelData | null, fileName?: string) => void;
   setIsLoading: (loading: boolean) => void;
   setAnalysisMode: (mode: AnalysisMode) => void;
   setVisualizationMode: (mode: VisualizationMode) => void;
+  setCompareMode: (mode: CompareMode) => void;
+  setModelDiffResult: (result: ModelDiffResult | null) => void;
+  setModel1Opacity: (opacity: number) => void;
+  setModel2Opacity: (opacity: number) => void;
+  setModel1Color: (color: string) => void;
+  setModel2Color: (color: string) => void;
 
   setDraftAngleThreshold: (threshold: number) => void;
   setDraftDirection: (direction: Vector3) => void;
@@ -86,9 +103,17 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   model: null,
   modelFileName: '',
+  model2: null,
+  model2FileName: '',
   isLoading: false,
   analysisMode: 'none',
   visualizationMode: 'solid',
+  compareMode: 'overlay',
+  modelDiffResult: null,
+  model1Opacity: 1.0,
+  model2Opacity: 0.6,
+  model1Color: '#6b8e9e',
+  model2Color: '#e07a5f',
 
   draftAngleThreshold: 5,
   draftDirection: { x: 0, y: 1, z: 0 },
@@ -126,10 +151,18 @@ export const useAppStore = create<AppState>((set) => ({
   sectionThicknessResolution: 50,
 
   setModel: (model, fileName = '') =>
-    set({ model, modelFileName: fileName, draftAngleResult: null, wallThicknessResult: null, drainHoleResult: null, cycleResult: null, sectionResult: null }),
+    set({ model, modelFileName: fileName, draftAngleResult: null, wallThicknessResult: null, drainHoleResult: null, cycleResult: null, sectionResult: null, modelDiffResult: null }),
+  setModel2: (model2, fileName = '') =>
+    set({ model2, model2FileName: fileName, modelDiffResult: null }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   setAnalysisMode: (mode) => set({ analysisMode: mode }),
   setVisualizationMode: (mode) => set({ visualizationMode: mode }),
+  setCompareMode: (mode) => set({ compareMode: mode }),
+  setModelDiffResult: (result) => set({ modelDiffResult: result }),
+  setModel1Opacity: (opacity) => set({ model1Opacity: opacity }),
+  setModel2Opacity: (opacity) => set({ model2Opacity: opacity }),
+  setModel1Color: (color) => set({ model1Color: color }),
+  setModel2Color: (color) => set({ model2Color: color }),
 
   setDraftAngleThreshold: (threshold) => set({ draftAngleThreshold: threshold }),
   setDraftDirection: (direction) => set({ draftDirection: direction }),

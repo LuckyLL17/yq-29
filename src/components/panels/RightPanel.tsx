@@ -12,14 +12,19 @@ import {
   Minus,
   Scissors,
   Square,
+  GitCompare,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { DraftAngleChart, ThicknessChart, CyclePieChart } from '../charts/AnalysisCharts';
 
 export function RightPanel() {
   const model = useAppStore((state) => state.model);
+  const model2 = useAppStore((state) => state.model2);
   const modelFileName = useAppStore((state) => state.modelFileName);
+  const model2FileName = useAppStore((state) => state.model2FileName);
   const analysisMode = useAppStore((state) => state.analysisMode);
+  const compareMode = useAppStore((state) => state.compareMode);
+  const modelDiffResult = useAppStore((state) => state.modelDiffResult);
   const draftAngleResult = useAppStore((state) => state.draftAngleResult);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
@@ -106,6 +111,19 @@ export function RightPanel() {
       }
     }
 
+    if (modelDiffResult && model2) {
+      report += '\n--- 模型对比分析 ---\n';
+      report += `模型1: ${modelFileName || '示例模型'}\n`;
+      report += `模型2: ${model2FileName || '示例模型'}\n`;
+      report += `对比模式: ${compareMode === 'overlay' ? '叠加显示' : compareMode === 'sidebyside' ? '并排显示' : '差异颜色映射'}\n`;
+      report += `最大凸出: ${modelDiffResult.maxDistance.toFixed(2)} mm\n`;
+      report += `最大凹陷: ${modelDiffResult.minDistance.toFixed(2)} mm\n`;
+      report += `平均差异: ${modelDiffResult.avgDistance.toFixed(2)} mm\n`;
+      report += `凸出顶点数: ${modelDiffResult.positiveCount}\n`;
+      report += `凹陷顶点数: ${modelDiffResult.negativeCount}\n`;
+      report += `无差异顶点数: ${modelDiffResult.zeroCount}\n`;
+    }
+
     report += '\n========================================\n';
     report += '报告结束\n';
     report += '========================================\n';
@@ -119,7 +137,7 @@ export function RightPanel() {
         <h3 className="text-sm font-semibold text-content-secondary">分析结果</h3>
         <button
           onClick={exportReport}
-          disabled={!draftAngleResult && !wallThicknessResult && !drainHoleResult && !cycleResult && !sectionResult}
+          disabled={!draftAngleResult && !wallThicknessResult && !drainHoleResult && !cycleResult && !sectionResult && !modelDiffResult}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download size={14} />
@@ -589,6 +607,122 @@ export function RightPanel() {
               <div className="text-center py-8 text-content-faint text-sm">
                 正在计算...
               </div>
+            )}
+          </div>
+        )}
+
+        {analysisMode === 'compare' && (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <GitCompare size={16} className="text-cyan-400" />
+              <h4 className="text-sm font-medium text-content-secondary">模型对比分析</h4>
+            </div>
+
+            <div className="bg-surface-elevated/30 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#6b8e9e' }} />
+                <span className="text-xs text-content-muted">模型1</span>
+                <span className="text-xs text-content-secondary font-mono ml-auto truncate max-w-[150px]">
+                  {modelFileName || '未导入'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#e07a5f' }} />
+                <span className="text-xs text-content-muted">模型2</span>
+                <span className="text-xs text-content-secondary font-mono ml-auto truncate max-w-[150px]">
+                  {model2FileName || '未导入'}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-surface-elevated/30 rounded-lg p-3">
+              <div className="flex justify-between text-xs mb-2">
+                <span className="text-content-muted">对比模式</span>
+                <span className="text-content-secondary font-medium">
+                  {compareMode === 'overlay' && '叠加显示'}
+                  {compareMode === 'sidebyside' && '并排显示'}
+                  {compareMode === 'diffcolormap' && '差异颜色映射'}
+                </span>
+              </div>
+            </div>
+
+            {modelDiffResult && compareMode === 'diffcolormap' ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">最大凸出</p>
+                    <p className="text-lg font-bold text-red-400 font-mono">
+                      {modelDiffResult.maxDistance.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-content-faint">mm</p>
+                  </div>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">最大凹陷</p>
+                    <p className="text-lg font-bold text-blue-400 font-mono">
+                      {Math.abs(modelDiffResult.minDistance).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-content-faint">mm</p>
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-xl p-4 border border-cyan-500/30 text-center">
+                  <p className="text-xs text-content-muted mb-1">平均几何差异</p>
+                  <p className="text-2xl font-bold text-content-primary font-mono">
+                    {modelDiffResult.avgDistance.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-content-muted">mm</p>
+                </div>
+
+                <div className="bg-surface-elevated/30 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-red-500" />
+                      <span className="text-content-muted">凸出顶点</span>
+                    </div>
+                    <span className="text-content-secondary font-mono">{modelDiffResult.positiveCount} 个</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500" />
+                      <span className="text-content-muted">凹陷顶点</span>
+                    </div>
+                    <span className="text-content-secondary font-mono">{modelDiffResult.negativeCount} 个</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-gray-500" />
+                      <span className="text-content-muted">无差异顶点</span>
+                    </div>
+                    <span className="text-content-secondary font-mono">{modelDiffResult.zeroCount} 个</span>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs text-content-muted mb-2">差异分布</p>
+                  <ThicknessChart result={{
+                    samples: [],
+                    minThickness: modelDiffResult.minDistance,
+                    maxThickness: modelDiffResult.maxDistance,
+                    avgThickness: modelDiffResult.avgDistance,
+                    thicknessDistribution: modelDiffResult.distanceDistribution,
+                    sampleCount: modelDiffResult.vertexDistances.length,
+                  }} />
+                </div>
+              </>
+            ) : (
+              !model || !model2 ? (
+                <div className="text-center py-8 text-content-faint text-sm">
+                  请先导入两个模型
+                </div>
+              ) : compareMode !== 'diffcolormap' ? (
+                <div className="text-center py-4 text-content-muted text-xs">
+                  选择「差异色」模式可查看几何差异分析结果
+                </div>
+              ) : (
+                <div className="text-center py-8 text-content-faint text-sm">
+                  正在计算差异...
+                </div>
+              )
             )}
           </div>
         )}

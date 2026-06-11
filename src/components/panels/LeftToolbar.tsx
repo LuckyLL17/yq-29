@@ -12,6 +12,8 @@ import {
   Play,
   Pause,
   Scissors,
+  GitCompare,
+  Palette,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { loadModelFromFile, createSampleBoxModel, createSampleBowlModel } from '@/utils/modelLoader';
@@ -20,7 +22,8 @@ import { analyzeWallThickness } from '@/utils/wallThickness';
 import { planDrainHoles } from '@/utils/drainHoles';
 import { estimateMoldingCycle, MATERIAL_OPTIONS } from '@/utils/moldingCycle';
 import { computeSection, getPlaneBounds } from '@/utils/section';
-import type { AnalysisMode, VisualizationMode, SectionAxis } from '@/types';
+import { computeModelDiff } from '@/utils/modelDiff';
+import type { AnalysisMode, VisualizationMode, SectionAxis, CompareMode } from '@/types';
 
 const tools = [
   { id: 'draft', label: '脱模角度', icon: MoveUp },
@@ -28,17 +31,35 @@ const tools = [
   { id: 'holes', label: '滤水孔', icon: CircleDot },
   { id: 'cycle', label: '成型周期', icon: Clock },
   { id: 'section', label: '截面分析', icon: Scissors },
+  { id: 'compare', label: '模型对比', icon: GitCompare },
 ] as const;
 
 export function LeftToolbar() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInput2Ref = useRef<HTMLInputElement>(null);
   const model = useAppStore((state) => state.model);
+  const model2 = useAppStore((state) => state.model2);
+  const modelFileName = useAppStore((state) => state.modelFileName);
+  const model2FileName = useAppStore((state) => state.model2FileName);
   const setModel = useAppStore((state) => state.setModel);
+  const setModel2 = useAppStore((state) => state.setModel2);
   const setIsLoading = useAppStore((state) => state.setIsLoading);
   const analysisMode = useAppStore((state) => state.analysisMode);
   const setAnalysisMode = useAppStore((state) => state.setAnalysisMode);
   const visualizationMode = useAppStore((state) => state.visualizationMode);
   const setVisualizationMode = useAppStore((state) => state.setVisualizationMode);
+  const compareMode = useAppStore((state) => state.compareMode);
+  const setCompareMode = useAppStore((state) => state.setCompareMode);
+  const modelDiffResult = useAppStore((state) => state.modelDiffResult);
+  const setModelDiffResult = useAppStore((state) => state.setModelDiffResult);
+  const model1Opacity = useAppStore((state) => state.model1Opacity);
+  const model2Opacity = useAppStore((state) => state.model2Opacity);
+  const setModel1Opacity = useAppStore((state) => state.setModel1Opacity);
+  const setModel2Opacity = useAppStore((state) => state.setModel2Opacity);
+  const model1Color = useAppStore((state) => state.model1Color);
+  const model2Color = useAppStore((state) => state.model2Color);
+  const setModel1Color = useAppStore((state) => state.setModel1Color);
+  const setModel2Color = useAppStore((state) => state.setModel2Color);
 
   const draftAngleThreshold = useAppStore((state) => state.draftAngleThreshold);
   const setDraftAngleThreshold = useAppStore((state) => state.setDraftAngleThreshold);
@@ -92,6 +113,22 @@ export function LeftToolbar() {
     }
   };
 
+  const handleFile2Upload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      const modelData = await loadModelFromFile(file);
+      setModel2(modelData, file.name);
+    } catch (error) {
+      console.error('模型2加载失败:', error);
+      alert('模型加载失败，请检查文件格式');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLoadSample = (type: 'box' | 'bowl') => {
     setIsLoading(true);
     setTimeout(() => {
@@ -101,9 +138,23 @@ export function LeftToolbar() {
     }, 300);
   };
 
+  const handleLoadSample2 = (type: 'box' | 'bowl') => {
+    setIsLoading(true);
+    setTimeout(() => {
+      const sampleModel = type === 'box' ? createSampleBoxModel() : createSampleBowlModel();
+      setModel2(sampleModel, type === 'box' ? '示例盒状模型' : '示例碗状模型');
+      setIsLoading(false);
+    }, 300);
+  };
+
   const runAnalysis = (mode: AnalysisMode) => {
-    if (!model) {
+    if (mode !== 'compare' && !model) {
       alert('请先导入模型');
+      return;
+    }
+
+    if (mode === 'compare' && (!model || !model2)) {
+      alert('请先导入两个模型');
       return;
     }
 
@@ -149,6 +200,15 @@ export function LeftToolbar() {
             setSectionResult(result);
             break;
           }
+          case 'compare': {
+            if (compareMode === 'diffcolormap' && model && model2) {
+              const result = computeModelDiff(model, model2);
+              setModelDiffResult(result);
+            } else {
+              setModelDiffResult(null);
+            }
+            break;
+          }
         }
       } catch (error) {
         console.error('分析失败:', error);
@@ -163,7 +223,7 @@ export function LeftToolbar() {
     <div className="w-72 h-full bg-surface-panel border-r border-edge-base flex flex-col overflow-hidden">
       <div className="p-4 border-b border-edge-subtle">
         <h3 className="text-sm font-semibold text-content-secondary mb-3">模型导入</h3>
-        <div className="space-y-2">
+        <div className="space-y-2 mb-3">
           <input
             ref={fileInputRef}
             type="file"
@@ -171,25 +231,64 @@ export function LeftToolbar() {
             onChange={handleFileUpload}
             className="hidden"
           />
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: model1Color }} />
+            <span className="text-xs text-content-muted">模型1: {modelFileName || '未导入'}</span>
+          </div>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium rounded-lg transition-colors"
           >
-            <Upload size={16} />
-            导入模型
+            <Upload size={14} />
+            导入模型1
           </button>
           <div className="flex gap-2">
             <button
               onClick={() => handleLoadSample('box')}
-              className="flex-1 px-2 py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
+              className="flex-1 px-2 py-1.5 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
             >
-              盒状示例
+              盒状
             </button>
             <button
               onClick={() => handleLoadSample('bowl')}
-              className="flex-1 px-2 py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
+              className="flex-1 px-2 py-1.5 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
             >
-              碗状示例
+              碗状
+            </button>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-edge-subtle">
+          <input
+            ref={fileInput2Ref}
+            type="file"
+            accept=".stl,.obj"
+            onChange={handleFile2Upload}
+            className="hidden"
+          />
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: model2Color }} />
+            <span className="text-xs text-content-muted">模型2: {model2FileName || '未导入'}</span>
+          </div>
+          <button
+            onClick={() => fileInput2Ref.current?.click()}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Upload size={14} />
+            导入模型2
+          </button>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => handleLoadSample2('box')}
+              className="flex-1 px-2 py-1.5 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
+            >
+              盒状
+            </button>
+            <button
+              onClick={() => handleLoadSample2('bowl')}
+              className="flex-1 px-2 py-1.5 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
+            >
+              碗状
             </button>
           </div>
         </div>
@@ -547,6 +646,161 @@ export function LeftToolbar() {
             >
               重新计算
             </button>
+          </div>
+        </div>
+      )}
+
+      {analysisMode === 'compare' && (
+        <div className="p-4 border-b border-edge-subtle">
+          <h3 className="text-sm font-semibold text-content-secondary mb-3">对比模式</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-content-muted block mb-2">显示方式</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'overlay', label: '叠加' },
+                  { id: 'sidebyside', label: '并排' },
+                  { id: 'diffcolormap', label: '差异色' },
+                ].map((mode) => {
+                  const isActive = compareMode === mode.id;
+                  return (
+                    <button
+                      key={mode.id}
+                      onClick={() => {
+                        setCompareMode(mode.id as CompareMode);
+                        if (mode.id === 'diffcolormap' && model && model2) {
+                          setIsLoading(true);
+                          setTimeout(() => {
+                            try {
+                              const result = computeModelDiff(model, model2);
+                              setModelDiffResult(result);
+                            } catch (error) {
+                              console.error('差异计算失败:', error);
+                              alert('差异计算失败，请重试');
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          }, 100);
+                        } else {
+                          setModelDiffResult(null);
+                        }
+                      }}
+                      className={`py-2 text-xs rounded-lg transition-colors ${
+                        isActive
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-surface-elevated text-content-secondary hover:bg-surface-hover border border-edge-subtle'
+                      }`}
+                    >
+                      {mode.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {compareMode !== 'diffcolormap' && (
+              <>
+                <div className="pt-2 border-t border-edge-subtle">
+                  <label className="text-xs text-content-muted block mb-2">
+                    模型颜色
+                  </label>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: model1Color }} />
+                        <span className="text-xs text-content-muted">模型1</span>
+                      </div>
+                      <input
+                        type="color"
+                        value={model1Color}
+                        onChange={(e) => setModel1Color(e.target.value)}
+                        className="w-full h-8 rounded cursor-pointer bg-transparent"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: model2Color }} />
+                        <span className="text-xs text-content-muted">模型2</span>
+                      </div>
+                      <input
+                        type="color"
+                        value={model2Color}
+                        onChange={(e) => setModel2Color(e.target.value)}
+                        className="w-full h-8 rounded cursor-pointer bg-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs text-content-muted block mb-1">
+                    模型1透明度: {model1Opacity.toFixed(2)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                    value={model1Opacity}
+                    onChange={(e) => setModel1Opacity(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-content-muted block mb-1">
+                    模型2透明度: {model2Opacity.toFixed(2)}
+                  </label>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                    value={model2Opacity}
+                    onChange={(e) => setModel2Opacity(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  />
+                </div>
+              </>
+            )}
+
+            {compareMode === 'diffcolormap' && modelDiffResult && (
+              <div className="pt-2 border-t border-edge-subtle space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-content-muted">最大凸出</span>
+                  <span className="text-red-400 font-mono">{modelDiffResult.maxDistance.toFixed(2)} mm</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-content-muted">最大凹陷</span>
+                  <span className="text-blue-400 font-mono">{modelDiffResult.minDistance.toFixed(2)} mm</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-content-muted">平均差异</span>
+                  <span className="text-content-secondary font-mono">{modelDiffResult.avgDistance.toFixed(2)} mm</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-content-muted">凸出顶点数</span>
+                  <span className="text-content-secondary font-mono">{modelDiffResult.positiveCount}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-content-muted">凹陷顶点数</span>
+                  <span className="text-content-secondary font-mono">{modelDiffResult.negativeCount}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-content-muted">无差异顶点</span>
+                  <span className="text-content-secondary font-mono">{modelDiffResult.zeroCount}</span>
+                </div>
+              </div>
+            )}
+
+            {compareMode === 'diffcolormap' && (
+              <button
+                onClick={() => runAnalysis('compare')}
+                className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+              >
+                重新计算差异
+              </button>
+            )}
           </div>
         </div>
       )}

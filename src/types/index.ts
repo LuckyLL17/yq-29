@@ -91,9 +91,22 @@ export interface MoldingCycleResult {
   }[];
 }
 
-export type AnalysisMode = 'none' | 'draft' | 'thickness' | 'holes' | 'cycle' | 'section';
+export type AnalysisMode = 'none' | 'draft' | 'thickness' | 'holes' | 'cycle' | 'section' | 'compare';
 
 export type VisualizationMode = 'solid' | 'wireframe' | 'xray';
+
+export type CompareMode = 'overlay' | 'sidebyside' | 'diffcolormap';
+
+export interface ModelDiffResult {
+  vertexDistances: Float32Array;
+  minDistance: number;
+  maxDistance: number;
+  avgDistance: number;
+  positiveCount: number;
+  negativeCount: number;
+  zeroCount: number;
+  distanceDistribution: { range: string; count: number; percentage: number }[];
+}
 
 export type SectionAxis = 'x' | 'y' | 'z';
 

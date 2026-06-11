@@ -1,10 +1,12 @@
-import { Suspense, useRef, useEffect } from 'react';
+import { Suspense, useRef, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, Html, Center } from '@react-three/drei';
 import { EffectComposer, Bloom, SSAO } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { ModelMesh } from './ModelMesh';
+import { DiffModelMesh } from './DiffModelMesh';
+import { DiffColorLegend } from './DiffColorLegend';
 import { DrainHolesDisplay } from './DrainHolesDisplay';
 import { ThicknessSamplesDisplay } from './ThicknessSamplesDisplay';
 import { SectionPlane } from './SectionPlane';
@@ -69,6 +71,154 @@ function SceneClippingSetup() {
   }, [analysisMode, sectionPlane.axis, sectionPlane.position, sectionPlane.visible, gl, displayModel]);
 
   return null;
+}
+
+function CompareScene() {
+  const model = useAppStore((state) => state.model);
+  const model2 = useAppStore((state) => state.model2);
+  const compareMode = useAppStore((state) => state.compareMode);
+  const modelDiffResult = useAppStore((state) => state.modelDiffResult);
+  const model1Color = useAppStore((state) => state.model1Color);
+  const model2Color = useAppStore((state) => state.model2Color);
+  const model1Opacity = useAppStore((state) => state.model1Opacity);
+  const model2Opacity = useAppStore((state) => state.model2Opacity);
+  const showGrid = useAppStore((state) => state.showGrid);
+  const showAxes = useAppStore((state) => state.showAxes);
+  const visualizationMode = useAppStore((state) => state.visualizationMode);
+  const isDarkMode = useAppStore((state) => state.isDarkMode);
+
+  const displayModel = model || createSampleBoxModel();
+  const displayModel2 = model2 || createSampleBoxModel();
+
+  const offsetX = useMemo(() => {
+    if (compareMode !== 'sidebyside') return 0;
+    const maxSize = Math.max(
+      displayModel.boundingBox.size.x,
+      displayModel2.boundingBox.size.x
+    );
+    return maxSize * 0.8;
+  }, [compareMode, displayModel.boundingBox.size.x, displayModel2.boundingBox.size.x]);
+
+  const model1Material = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(model1Color),
+      metalness: 0.2,
+      roughness: 0.5,
+      side: THREE.DoubleSide,
+      transparent: model1Opacity < 1,
+      opacity: model1Opacity,
+    });
+    if (visualizationMode === 'wireframe') {
+      mat.wireframe = true;
+    }
+    return mat;
+  }, [model1Color, model1Opacity, visualizationMode]);
+
+  const model2Material = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(model2Color),
+      metalness: 0.2,
+      roughness: 0.5,
+      side: THREE.DoubleSide,
+      transparent: model2Opacity < 1,
+      opacity: model2Opacity,
+    });
+    if (visualizationMode === 'wireframe') {
+      mat.wireframe = true;
+    }
+    return mat;
+  }, [model2Color, model2Opacity, visualizationMode]);
+
+  const model1Geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(displayModel.vertices, 3));
+    geo.setIndex(new THREE.BufferAttribute(displayModel.indices, 1));
+    geo.computeVertexNormals();
+    return geo;
+  }, [displayModel]);
+
+  const model2Geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(displayModel2.vertices, 3));
+    geo.setIndex(new THREE.BufferAttribute(displayModel2.indices, 1));
+    geo.computeVertexNormals();
+    return geo;
+  }, [displayModel2]);
+
+  const gridY = -Math.max(displayModel.boundingBox.size.y, displayModel2.boundingBox.size.y) / 2 - 1;
+
+  return (
+    <>
+      <SceneClippingSetup />
+      <SceneBackground />
+      <ambientLight intensity={0.4} />
+      <directionalLight
+        position={[100, 150, 100]}
+        intensity={1.2}
+        castShadow
+        shadow-mapSize={[2048, 2048]}
+      />
+      <directionalLight position={[-80, 60, -80]} intensity={0.5} />
+      <pointLight position={[0, 80, 0]} intensity={0.3} color="#06b6d4" />
+
+      {compareMode === 'diffcolormap' && modelDiffResult ? (
+        <group>
+          <DiffModelMesh model={displayModel} diffResult={modelDiffResult} position={[-offsetX, 0, 0]} />
+        </group>
+      ) : (
+        <group>
+          <mesh geometry={model1Geometry} material={model1Material} position={[-offsetX, 0, 0]} castShadow receiveShadow />
+          {model2 && (
+            <mesh geometry={model2Geometry} material={model2Material} position={[offsetX, 0, 0]} castShadow receiveShadow />
+          )}
+        </group>
+      )}
+
+      {showGrid && (
+        <Grid
+          position={[0, gridY, 0]}
+          args={[400, 400]}
+          cellSize={5}
+          cellThickness={0.5}
+          cellColor={isDarkMode ? '#1e293b' : '#cbd5e1'}
+          sectionSize={25}
+          sectionThickness={1}
+          sectionColor={isDarkMode ? '#334155' : '#94a3b8'}
+          fadeDistance={500}
+          fadeStrength={1}
+          followCamera={false}
+          infiniteGrid
+        />
+      )}
+
+      {showAxes && (
+        <>
+          <axesHelper args={[50]} position={[-80 - offsetX, gridY + 1, -60]} />
+          {compareMode === 'sidebyside' && model2 && (
+            <axesHelper args={[50]} position={[-80 + offsetX, gridY + 1, -60]} />
+          )}
+        </>
+      )}
+
+      <OrbitControls
+        enableDamping
+        dampingFactor={0.05}
+        minDistance={30}
+        maxDistance={800}
+        autoRotate={false}
+        autoRotateSpeed={0.5}
+      />
+
+      <EffectComposer>
+        <Bloom
+          intensity={0.3}
+          luminanceThreshold={0.9}
+          luminanceSmoothing={0.9}
+          mipmapBlur
+        />
+      </EffectComposer>
+    </>
+  );
 }
 
 function Scene() {
@@ -184,6 +334,8 @@ function Scene() {
 
 export function ModelViewer() {
   const isLoading = useAppStore((state) => state.isLoading);
+  const analysisMode = useAppStore((state) => state.analysisMode);
+  const modelDiffResult = useAppStore((state) => state.modelDiffResult);
 
   return (
     <div className="w-full h-full relative bg-surface-base">
@@ -197,7 +349,7 @@ export function ModelViewer() {
         <fog attach="fog" args={['#0f172a', 200, 500]} />
         <SceneBackground />
         <Suspense fallback={null}>
-          <Scene />
+          {analysisMode === 'compare' ? <CompareScene /> : <Scene />}
         </Suspense>
       </Canvas>
 
@@ -208,6 +360,13 @@ export function ModelViewer() {
             <p className="text-cyan-400 font-medium">正在计算分析...</p>
           </div>
         </div>
+      )}
+
+      {analysisMode === 'compare' && modelDiffResult && (
+        <DiffColorLegend 
+          minDistance={modelDiffResult.minDistance} 
+          maxDistance={modelDiffResult.maxDistance} 
+        />
       )}
 
       <div className="absolute bottom-4 left-4 flex gap-2">
