@@ -97,6 +97,7 @@ export function SectionPlane({ modelSize, modelCenter }: SectionPlaneProps) {
             opacity={0.15}
             side={THREE.DoubleSide}
             depthWrite={false}
+            clippingPlanes={[]}
           />
         </mesh>
       </TransformControls>
@@ -108,6 +109,7 @@ export function SectionPlane({ modelSize, modelCenter }: SectionPlaneProps) {
           transparent
           opacity={0.5}
           side={THREE.DoubleSide}
+          clippingPlanes={[]}
         />
       </mesh>
     </group>

@@ -6,9 +6,9 @@ interface SectionContourProps {
   result: SectionResult | null;
 }
 
-export function SectionContour({ result }: SectionContourProps) {
-  const CLIP_OFFSET = 0.05;
+const CLIP_OFFSET = 0.1;
 
+export function SectionContour({ result }: SectionContourProps) {
   const lineObjects = useMemo(() => {
     if (!result || result.contourPoints.length === 0) return [];
 
@@ -46,20 +46,15 @@ export function SectionContour({ result }: SectionContourProps) {
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
       const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0x06b6d4,
+        color: 0x00e5ff,
         transparent: true,
         opacity: 1,
+        linewidth: 2,
+        clippingPlanes: [],
       });
       const line = new THREE.Line(geometry, lineMaterial);
+      line.renderOrder = 999;
       objects.push(line);
-
-      const glowMaterial = new THREE.LineBasicMaterial({
-        color: 0x06b6d4,
-        transparent: true,
-        opacity: 0.4,
-      });
-      const glowLine = new THREE.LineSegments(geometry, glowMaterial);
-      objects.push(glowLine);
     }
 
     return objects;
@@ -72,46 +67,44 @@ export function SectionContour({ result }: SectionContourProps) {
     const objects: THREE.Mesh[] = [];
 
     try {
-      for (const contour of result.contourPoints) {
+      for (let ci = 0; ci < result.contourPoints.length; ci++) {
+        const contour = result.contourPoints[ci];
         if (!contour || contour.length < 3) continue;
 
         const shape = new THREE.Shape();
-        let p0: [number, number];
-        let p1: [number, number];
+        const points2D: { x: number; y: number }[] = [];
 
-        switch (axis) {
-          case 'x':
-            p0 = [contour[0].y, contour[0].z];
-            break;
-          case 'y':
-            p0 = [contour[0].x, contour[0].z];
-            break;
-          case 'z':
-            p0 = [contour[0].x, contour[0].y];
-            break;
-          default:
-            p0 = [contour[0].x, contour[0].z];
-        }
-
-        shape.moveTo(p0[0], p0[1]);
-
-        for (let i = 1; i < contour.length; i++) {
+        for (let i = 0; i < contour.length; i++) {
+          let px: number, py: number;
           switch (axis) {
             case 'x':
-              p1 = [contour[i].y, contour[i].z];
+              px = contour[i].y;
+              py = contour[i].z;
               break;
             case 'y':
-              p1 = [contour[i].x, contour[i].z];
+              px = contour[i].x;
+              py = contour[i].z;
               break;
             case 'z':
-              p1 = [contour[i].x, contour[i].y];
+              px = contour[i].x;
+              py = contour[i].y;
               break;
             default:
-              p1 = [contour[i].x, contour[i].z];
+              px = contour[i].x;
+              py = contour[i].z;
           }
-          shape.lineTo(p1[0], p1[1]);
+          points2D.push({ x: px, y: py });
         }
 
+        const signedArea = computeSignedArea(points2D);
+        if (signedArea < 0) {
+          points2D.reverse();
+        }
+
+        shape.moveTo(points2D[0].x, points2D[0].y);
+        for (let i = 1; i < points2D.length; i++) {
+          shape.lineTo(points2D[i].x, points2D[i].y);
+        }
         shape.closePath();
 
         const geometry = new THREE.ShapeGeometry(shape);
@@ -121,49 +114,55 @@ export function SectionContour({ result }: SectionContourProps) {
         const planePos = result.plane.position + CLIP_OFFSET;
 
         for (let i = 0; i < positions.length / 3; i++) {
-          const x = positions[i * 3];
-          const y = positions[i * 3 + 1];
-          const z = positions[i * 3 + 2];
+          const sx = positions[i * 3];
+          const sy = positions[i * 3 + 1];
 
           switch (axis) {
             case 'x':
               positions[i * 3] = planePos;
-              positions[i * 3 + 1] = x;
-              positions[i * 3 + 2] = y;
+              positions[i * 3 + 1] = sx;
+              positions[i * 3 + 2] = sy;
               break;
             case 'y':
+              positions[i * 3] = sx;
               positions[i * 3 + 1] = planePos;
+              positions[i * 3 + 2] = sy;
               break;
             case 'z':
-              positions[i * 3] = x;
-              positions[i * 3 + 1] = y;
+              positions[i * 3] = sx;
+              positions[i * 3 + 1] = sy;
               positions[i * 3 + 2] = planePos;
               break;
           }
         }
 
         geometry.computeVertexNormals();
+        geometry.attributes.position.needsUpdate = true;
 
         const capMaterial = new THREE.MeshStandardMaterial({
-          color: 0x4a6b7a,
-          metalness: 0.2,
-          roughness: 0.6,
+          color: 0x7ec8e3,
+          metalness: 0.1,
+          roughness: 0.5,
           side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.9,
+          clippingPlanes: [],
         });
         const capMesh = new THREE.Mesh(geometry, capMaterial);
+        capMesh.renderOrder = 100;
         objects.push(capMesh);
 
-        const glowMaterial = new THREE.MeshBasicMaterial({
-          color: 0x06b6d4,
+        const edgeGeometry = new THREE.EdgesGeometry(geometry, 1);
+        const edgeMaterial = new THREE.LineBasicMaterial({
+          color: 0x00e5ff,
           transparent: true,
-          opacity: 0.15,
-          side: THREE.DoubleSide,
-          depthWrite: false,
-          polygonOffset: true,
-          polygonOffsetFactor: -1,
+          opacity: 0.8,
+          linewidth: 2,
+          clippingPlanes: [],
         });
-        const glowMesh = new THREE.Mesh(geometry, glowMaterial);
-        objects.push(glowMesh);
+        const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+        edges.renderOrder = 998;
+        objects.push(edges as any);
       }
 
       return objects.length > 0 ? objects : null;
@@ -185,4 +184,15 @@ export function SectionContour({ result }: SectionContourProps) {
       ))}
     </group>
   );
+}
+
+function computeSignedArea(points: { x: number; y: number }[]): number {
+  let area = 0;
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    const p1 = points[i];
+    const p2 = points[(i + 1) % n];
+    area += p1.x * p2.y - p2.x * p1.y;
+  }
+  return area / 2;
 }

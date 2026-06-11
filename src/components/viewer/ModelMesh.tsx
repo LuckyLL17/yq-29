@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAppStore } from '@/store/useAppStore';
@@ -9,6 +9,7 @@ interface ModelMeshProps {
     vertices: Float32Array;
     indices: Uint32Array | Uint16Array;
     normals: Float32Array;
+    boundingBox?: THREE.Box3;
   };
 }
 
@@ -18,6 +19,7 @@ export function ModelMesh({ model }: ModelMeshProps) {
   const visualizationMode = useAppStore((state) => state.visualizationMode);
   const draftAngleResult = useAppStore((state) => state.draftAngleResult);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
+  const sectionPlane = useAppStore((state) => state.sectionPlane);
   const autoRotate = useAppStore((state) => state.autoRotate);
 
   const geometry = useMemo(() => {
@@ -28,12 +30,37 @@ export function ModelMesh({ model }: ModelMeshProps) {
     return geo;
   }, [model.vertices, model.indices]);
 
+  const clippingPlanes = useMemo(() => {
+    if (analysisMode !== 'section' || !sectionPlane.visible) {
+      return [];
+    }
+
+    const normal = new THREE.Vector3();
+    switch (sectionPlane.axis) {
+      case 'x':
+        normal.set(1, 0, 0);
+        break;
+      case 'y':
+        normal.set(0, 1, 0);
+        break;
+      case 'z':
+        normal.set(0, 0, 1);
+        break;
+      default:
+        normal.set(0, 1, 0);
+    }
+
+    return [new THREE.Plane(normal, -sectionPlane.position)];
+  }, [analysisMode, sectionPlane.axis, sectionPlane.position, sectionPlane.visible]);
+
   const material = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({
       color: 0x6b8e9e,
       metalness: 0.2,
       roughness: 0.5,
       side: THREE.DoubleSide,
+      clippingPlanes: clippingPlanes,
+      clipShadows: true,
     });
 
     if (analysisMode === 'draft' && draftAngleResult) {
@@ -61,7 +88,14 @@ export function ModelMesh({ model }: ModelMeshProps) {
     }
 
     return mat;
-  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model]);
+  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model, clippingPlanes]);
+
+  useEffect(() => {
+    if (material) {
+      material.clippingPlanes = clippingPlanes;
+      material.needsUpdate = true;
+    }
+  }, [clippingPlanes, material]);
 
   useFrame((_, delta) => {
     if (autoRotate && meshRef.current) {

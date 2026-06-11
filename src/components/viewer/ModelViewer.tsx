@@ -29,9 +29,12 @@ function SceneBackground() {
 }
 
 function SceneClippingSetup() {
-  const { gl } = useThree();
+  const { gl, scene } = useThree();
   const analysisMode = useAppStore((state) => state.analysisMode);
   const sectionPlane = useAppStore((state) => state.sectionPlane);
+  const model = useAppStore((state) => state.model);
+
+  const displayModel = model || createSampleBoxModel();
 
   useEffect(() => {
     if (analysisMode === 'section' && sectionPlane.visible) {
@@ -49,14 +52,21 @@ function SceneClippingSetup() {
         default:
           normal.set(0, 1, 0);
       }
-      const plane = new THREE.Plane(normal, -sectionPlane.position);
+
+      const worldPos = sectionPlane.position;
+      const plane = new THREE.Plane(normal, -worldPos);
       gl.clippingPlanes = [plane];
       gl.localClippingEnabled = true;
     } else {
       gl.clippingPlanes = [];
       gl.localClippingEnabled = false;
     }
-  }, [analysisMode, sectionPlane.axis, sectionPlane.position, sectionPlane.visible, gl]);
+
+    return () => {
+      gl.clippingPlanes = [];
+      gl.localClippingEnabled = false;
+    };
+  }, [analysisMode, sectionPlane.axis, sectionPlane.position, sectionPlane.visible, gl, displayModel]);
 
   return null;
 }
