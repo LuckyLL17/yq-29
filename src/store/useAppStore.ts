@@ -110,8 +110,8 @@ export const useAppStore = create<AppState>((set) => ({
   visualizationMode: 'solid',
   compareMode: 'overlay',
   modelDiffResult: null,
-  model1Opacity: 1.0,
-  model2Opacity: 0.6,
+  model1Opacity: 0.85,
+  model2Opacity: 0.45,
   model1Color: '#6b8e9e',
   model2Color: '#e07a5f',
 

@@ -76,6 +76,8 @@ function SceneClippingSetup() {
 function CompareScene() {
   const model = useAppStore((state) => state.model);
   const model2 = useAppStore((state) => state.model2);
+  const modelFileName = useAppStore((state) => state.modelFileName);
+  const model2FileName = useAppStore((state) => state.model2FileName);
   const compareMode = useAppStore((state) => state.compareMode);
   const modelDiffResult = useAppStore((state) => state.modelDiffResult);
   const model1Color = useAppStore((state) => state.model1Color);
@@ -99,6 +101,9 @@ function CompareScene() {
     return maxSize * 0.8;
   }, [compareMode, displayModel.boundingBox.size.x, displayModel2.boundingBox.size.x]);
 
+  const model1LabelY = displayModel.boundingBox.size.y / 2 + 15;
+  const model2LabelY = displayModel2.boundingBox.size.y / 2 + 15;
+
   const model1Material = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({
       color: new THREE.Color(model1Color),
@@ -107,6 +112,7 @@ function CompareScene() {
       side: THREE.DoubleSide,
       transparent: model1Opacity < 1,
       opacity: model1Opacity,
+      depthWrite: model1Opacity >= 1,
     });
     if (visualizationMode === 'wireframe') {
       mat.wireframe = true;
@@ -122,12 +128,26 @@ function CompareScene() {
       side: THREE.DoubleSide,
       transparent: model2Opacity < 1,
       opacity: model2Opacity,
+      depthWrite: model2Opacity >= 1,
     });
     if (visualizationMode === 'wireframe') {
       mat.wireframe = true;
     }
     return mat;
   }, [model2Color, model2Opacity, visualizationMode]);
+
+  const model2DiffMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: new THREE.Color(model2Color),
+      metalness: 0.2,
+      roughness: 0.6,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false,
+      wireframe: visualizationMode === 'wireframe',
+    });
+  }, [model2Color, visualizationMode]);
 
   const model1Geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
@@ -147,6 +167,9 @@ function CompareScene() {
 
   const gridY = -Math.max(displayModel.boundingBox.size.y, displayModel2.boundingBox.size.y) / 2 - 1;
 
+  const model1Label = modelFileName ? modelFileName.split('.')[0] : '模型1';
+  const model2Label = model2FileName ? model2FileName.split('.')[0] : '模型2';
+
   return (
     <>
       <SceneClippingSetup />
@@ -164,12 +187,80 @@ function CompareScene() {
       {compareMode === 'diffcolormap' && modelDiffResult ? (
         <group>
           <DiffModelMesh model={displayModel} diffResult={modelDiffResult} position={[-offsetX, 0, 0]} />
+          {model2 && (
+            <mesh geometry={model2Geometry} material={model2DiffMaterial} position={[offsetX, 0, 0]} />
+          )}
+          <Html position={[-offsetX, model1LabelY, 0]} center distanceFactor={100} style={{ pointerEvents: 'none' }}>
+            <div style={{
+              padding: '6px 16px',
+              background: 'rgba(239, 68, 68, 0.9)',
+              color: 'white',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              border: '2px solid rgba(255,255,255,0.3)',
+            }}>
+              {model1Label} (差异色)
+            </div>
+          </Html>
+          {model2 && (
+            <Html position={[offsetX, model2LabelY, 0]} center distanceFactor={100} style={{ pointerEvents: 'none' }}>
+              <div style={{
+                padding: '6px 16px',
+                background: model2Color,
+                color: 'white',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                border: '2px solid rgba(255,255,255,0.3)',
+                opacity: 0.7,
+              }}>
+                {model2Label} (参考)
+              </div>
+            </Html>
+          )}
         </group>
       ) : (
         <group>
           <mesh geometry={model1Geometry} material={model1Material} position={[-offsetX, 0, 0]} castShadow receiveShadow />
           {model2 && (
             <mesh geometry={model2Geometry} material={model2Material} position={[offsetX, 0, 0]} castShadow receiveShadow />
+          )}
+          <Html position={[-offsetX, model1LabelY, 0]} center distanceFactor={100} style={{ pointerEvents: 'none' }}>
+            <div style={{
+              padding: '6px 16px',
+              background: model1Color,
+              color: 'white',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              border: '2px solid rgba(255,255,255,0.3)',
+            }}>
+              {model1Label}
+            </div>
+          </Html>
+          {model2 && (
+            <Html position={[offsetX, model2LabelY, 0]} center distanceFactor={100} style={{ pointerEvents: 'none' }}>
+              <div style={{
+                padding: '6px 16px',
+                background: model2Color,
+                color: 'white',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                border: '2px solid rgba(255,255,255,0.3)',
+              }}>
+                {model2Label}
+              </div>
+            </Html>
           )}
         </group>
       )}
