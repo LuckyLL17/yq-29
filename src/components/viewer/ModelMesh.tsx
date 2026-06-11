@@ -1,5 +1,5 @@
 import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { createDraftAngleVertexColors } from '@/utils/draftAngle';
@@ -19,6 +19,30 @@ export function ModelMesh({ model }: ModelMeshProps) {
   const draftAngleResult = useAppStore((state) => state.draftAngleResult);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
   const autoRotate = useAppStore((state) => state.autoRotate);
+  const sectionPlane = useAppStore((state) => state.sectionPlane);
+  useThree();
+
+  const clippingPlane = useMemo(() => {
+    if (analysisMode !== 'section' || !sectionPlane.visible) {
+      return null;
+    }
+
+    const normal = new THREE.Vector3();
+    switch (sectionPlane.axis) {
+      case 'x':
+        normal.set(1, 0, 0);
+        break;
+      case 'y':
+        normal.set(0, 1, 0);
+        break;
+      case 'z':
+        normal.set(0, 0, 1);
+        break;
+    }
+
+    const plane = new THREE.Plane(normal, -sectionPlane.position);
+    return plane;
+  }, [analysisMode, sectionPlane.axis, sectionPlane.position, sectionPlane.visible]);
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
@@ -29,7 +53,7 @@ export function ModelMesh({ model }: ModelMeshProps) {
   }, [model.vertices, model.indices]);
 
   const material = useMemo(() => {
-    let mat: THREE.Material;
+    let mat: THREE.MeshStandardMaterial;
 
     if (analysisMode === 'draft' && draftAngleResult) {
       const colors = createDraftAngleVertexColors(
@@ -42,6 +66,8 @@ export function ModelMesh({ model }: ModelMeshProps) {
         metalness: 0.1,
         roughness: 0.7,
         side: THREE.DoubleSide,
+        clippingPlanes: clippingPlane ? [clippingPlane] : undefined,
+        clipShadows: true,
       });
     } else if (analysisMode === 'thickness' && wallThicknessResult) {
       mat = new THREE.MeshStandardMaterial({
@@ -51,6 +77,17 @@ export function ModelMesh({ model }: ModelMeshProps) {
         transparent: true,
         opacity: 0.85,
         side: THREE.DoubleSide,
+        clippingPlanes: clippingPlane ? [clippingPlane] : undefined,
+        clipShadows: true,
+      });
+    } else if (analysisMode === 'section') {
+      mat = new THREE.MeshStandardMaterial({
+        color: 0x6b8e9e,
+        metalness: 0.2,
+        roughness: 0.5,
+        side: THREE.DoubleSide,
+        clippingPlanes: clippingPlane ? [clippingPlane] : undefined,
+        clipShadows: true,
       });
     } else {
       mat = new THREE.MeshStandardMaterial({
@@ -62,16 +99,14 @@ export function ModelMesh({ model }: ModelMeshProps) {
     }
 
     if (visualizationMode === 'wireframe') {
-      if ('wireframe' in mat) {
-        (mat as any).wireframe = true;
-      }
+      mat.wireframe = true;
     } else if (visualizationMode === 'xray') {
       mat.transparent = true;
       mat.opacity = 0.3;
     }
 
     return mat;
-  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model]);
+  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model, clippingPlane]);
 
   useFrame((_, delta) => {
     if (autoRotate && meshRef.current) {

@@ -468,6 +468,26 @@ export function LeftToolbar() {
                 }}
                 className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs text-content-muted">精确输入:</span>
+                <input
+                  type="number"
+                  value={sectionPlane.position.toFixed(2)}
+                  min={model ? getPlaneBounds(model, sectionPlane.axis).min : -100}
+                  max={model ? getPlaneBounds(model, sectionPlane.axis).max : 100}
+                  step={0.1}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) {
+                      const bounds = model ? getPlaneBounds(model, sectionPlane.axis) : { min: -100, max: 100 };
+                      const clamped = Math.max(bounds.min, Math.min(bounds.max, val));
+                      setSectionPosition(clamped);
+                    }
+                  }}
+                  className="flex-1 px-2 py-1 bg-surface-input border border-edge-base rounded text-xs text-content-secondary font-mono focus:outline-none focus:border-cyan-500"
+                />
+                <span className="text-xs text-content-faint">mm</span>
+              </div>
             </div>
 
             <div>

@@ -147,7 +147,7 @@ export function ModelViewer() {
       <Canvas
         shadows
         camera={{ position: [120, 100, 120], fov: 45 }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{ antialias: true, alpha: false, localClippingEnabled: true }}
         dpr={[1, 2]}
       >
         <color attach="background" args={['#0f172a']} />
