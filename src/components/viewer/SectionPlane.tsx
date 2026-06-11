@@ -18,6 +18,7 @@ export function SectionPlane({ modelSize, modelCenter }: SectionPlaneProps) {
   const { camera, gl } = useThree();
 
   const planeSize = Math.max(modelSize.x, modelSize.y, modelSize.z) * 1.5;
+  const CLIP_OFFSET = 0.05;
 
   const getPlaneRotation = (axis: SectionAxis): [number, number, number] => {
     switch (axis) {
@@ -34,15 +35,16 @@ export function SectionPlane({ modelSize, modelCenter }: SectionPlaneProps) {
 
   const getPlanePosition = (): [number, number, number] => {
     const pos = sectionPlane.position;
+    const offset = CLIP_OFFSET;
     switch (sectionPlane.axis) {
       case 'x':
-        return [pos, modelCenter.y, modelCenter.z];
+        return [pos + offset, modelCenter.y, modelCenter.z];
       case 'y':
-        return [modelCenter.x, pos, modelCenter.z];
+        return [modelCenter.x, pos + offset, modelCenter.z];
       case 'z':
-        return [modelCenter.x, modelCenter.y, pos];
+        return [modelCenter.x, modelCenter.y, pos + offset];
       default:
-        return [modelCenter.x, pos, modelCenter.z];
+        return [modelCenter.x, pos + offset, modelCenter.z];
     }
   };
 
@@ -56,13 +58,13 @@ export function SectionPlane({ modelSize, modelCenter }: SectionPlaneProps) {
         let newValue = 0;
         switch (sectionPlane.axis) {
           case 'x':
-            newValue = pos.x;
+            newValue = pos.x - CLIP_OFFSET;
             break;
           case 'y':
-            newValue = pos.y;
+            newValue = pos.y - CLIP_OFFSET;
             break;
           case 'z':
-            newValue = pos.z;
+            newValue = pos.z - CLIP_OFFSET;
             break;
         }
         setSectionPosition(newValue);

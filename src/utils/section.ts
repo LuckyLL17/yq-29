@@ -20,9 +20,15 @@ import {
 } from './geometry';
 
 interface IntersectionPoint {
-  point: Vector3;
-  edgeIndex: number;
+  x: number;
+  y: number;
+  z: number;
+  edgeKey: string;
+}
+
+interface FaceIntersection {
   faceIndex: number;
+  points: IntersectionPoint[];
 }
 
 export function computeSection(
@@ -33,11 +39,11 @@ export function computeSection(
   const { vertices, indices } = model;
   const faceCount = indices.length / 3;
 
-  const planeNormal = getPlaneNormal(plane.axis);
   const planePos = plane.position;
+  const planeNormal = getPlaneNormal(plane.axis);
 
-  const intersectionEdges: Map<string, IntersectionPoint[]> = new Map();
-  const faceIntersections: { faceIndex: number; points: Vector3[] }[] = [];
+  const faceIntersections: FaceIntersection[] = [];
+  const edgePointMap: Map<string, IntersectionPoint> = new Map();
 
   for (let i = 0; i < faceCount; i++) {
     const i0 = indices[i * 3];
@@ -60,32 +66,40 @@ export function computeSection(
       z: vertices[i2 * 3 + 2],
     };
 
-    const d0 = getPlaneDistance(v0, plane.axis) - planePos;
-    const d1 = getPlaneDistance(v1, plane.axis) - planePos;
-    const d2 = getPlaneDistance(v2, plane.axis) - planePos;
+    const d0 = getPlaneCoordinate(v0, plane.axis) - planePos;
+    const d1 = getPlaneCoordinate(v1, plane.axis) - planePos;
+    const d2 = getPlaneCoordinate(v2, plane.axis) - planePos;
 
-    const points: Vector3[] = [];
+    const points: IntersectionPoint[] = [];
 
-    if (d0 * d1 < 0) {
-      const t = Math.abs(d0) / (Math.abs(d0) + Math.abs(d1));
-      points.push(lerpVector3(v0, v1, t));
-    }
-    if (d1 * d2 < 0) {
-      const t = Math.abs(d1) / (Math.abs(d1) + Math.abs(d2));
-      points.push(lerpVector3(v1, v2, t));
-    }
-    if (d2 * d0 < 0) {
-      const t = Math.abs(d2) / (Math.abs(d2) + Math.abs(d0));
-      points.push(lerpVector3(v2, v0, t));
-    }
+    const addIntersection = (va: Vector3, vb: Vector3, da: number, db: number, ea: number, eb: number) => {
+      if (da * db < 0) {
+        const t = Math.abs(da) / (Math.abs(da) + Math.abs(db));
+        const pt = {
+          x: va.x + (vb.x - va.x) * t,
+          y: va.y + (vb.y - va.y) * t,
+          z: va.z + (vb.z - va.z) * t,
+          edgeKey: makeEdgeKey(ea, eb),
+        };
+        points.push(pt);
+        edgePointMap.set(pt.edgeKey, pt);
+      }
+    };
+
+    addIntersection(v0, v1, d0, d1, i0, i1);
+    addIntersection(v1, v2, d1, d2, i1, i2);
+    addIntersection(v2, v0, d2, d0, i2, i0);
 
     if (points.length >= 2) {
-      faceIntersections.push({ faceIndex: i, points: points.slice(0, 2) });
+      faceIntersections.push({
+        faceIndex: i,
+        points: points.slice(0, 2),
+      });
     }
   }
 
-  const contours = buildContours(faceIntersections);
-  const area = computeContoursArea(contours, planeNormal);
+  const contours = buildContoursSimple(faceIntersections, plane.axis);
+  const area = computeContoursArea2D(contours, plane.axis);
   const perimeter = computeContoursPerimeter(contours);
   const thicknessSamples = computeSectionThickness(
     model,
@@ -97,21 +111,21 @@ export function computeSection(
   let minThickness = Infinity;
   let maxThickness = 0;
   let totalThickness = 0;
+  let validSampleCount = 0;
 
   for (const sample of thicknessSamples) {
-    if (sample.thickness > 0) {
+    if (sample.thickness > 0 && sample.thickness < 1000) {
       if (sample.thickness < minThickness) minThickness = sample.thickness;
       if (sample.thickness > maxThickness) maxThickness = sample.thickness;
       totalThickness += sample.thickness;
+      validSampleCount++;
     }
   }
 
-  const avgThickness = thicknessSamples.length > 0
-    ? totalThickness / thicknessSamples.filter(s => s.thickness > 0).length
-    : 0;
+  const avgThickness = validSampleCount > 0 ? totalThickness / validSampleCount : 0;
 
   const thicknessDistribution = computeThicknessDistribution(
-    thicknessSamples.filter(s => s.thickness > 0),
+    thicknessSamples.filter(s => s.thickness > 0 && s.thickness < 1000),
     minThickness,
     maxThickness
   );
@@ -121,12 +135,16 @@ export function computeSection(
     area,
     perimeter,
     thicknessSamples,
-    minThickness: isFinite(minThickness) ? minThickness : 0,
-    maxThickness,
+    minThickness: isFinite(minThickness) && validSampleCount > 0 ? minThickness : 0,
+    maxThickness: validSampleCount > 0 ? maxThickness : 0,
     avgThickness,
     thicknessDistribution,
     plane,
   };
+}
+
+function makeEdgeKey(a: number, b: number): string {
+  return a < b ? `${a}-${b}` : `${b}-${a}`;
 }
 
 function getPlaneNormal(axis: string): Vector3 {
@@ -138,7 +156,7 @@ function getPlaneNormal(axis: string): Vector3 {
   }
 }
 
-function getPlaneDistance(point: Vector3, axis: string): number {
+function getPlaneCoordinate(point: Vector3, axis: string): number {
   switch (axis) {
     case 'x': return point.x;
     case 'y': return point.y;
@@ -147,69 +165,74 @@ function getPlaneDistance(point: Vector3, axis: string): number {
   }
 }
 
-function lerpVector3(a: Vector3, b: Vector3, t: number): Vector3 {
-  return {
-    x: a.x + (b.x - a.x) * t,
-    y: a.y + (b.y - a.y) * t,
-    z: a.z + (b.z - a.z) * t,
-  };
-}
-
-function buildContours(
-  faceIntersections: { faceIndex: number; points: Vector3[] }[]
+function buildContoursSimple(
+  faceIntersections: FaceIntersection[],
+  axis: string
 ): SectionContourPoint[][] {
+  if (faceIntersections.length === 0) return [];
+
   const contours: SectionContourPoint[][] = [];
   const usedFaces = new Set<number>();
 
   while (usedFaces.size < faceIntersections.length) {
-    let startFaceIndex = -1;
+    let startIdx = -1;
     for (let i = 0; i < faceIntersections.length; i++) {
       if (!usedFaces.has(i)) {
-        startFaceIndex = i;
+        startIdx = i;
         break;
       }
     }
-
-    if (startFaceIndex === -1) break;
+    if (startIdx === -1) break;
 
     const contour: SectionContourPoint[] = [];
-    let currentFaceIndex = startFaceIndex;
-    let currentPointIndex = 0;
+    let currentIdx = startIdx;
+    let exitEdgeKey: string;
 
-    while (true) {
-      if (usedFaces.has(currentFaceIndex)) break;
-      usedFaces.add(currentFaceIndex);
+    const firstFace = faceIntersections[currentIdx];
+    const firstPoint = firstFace.points[0];
+    const firstEdgeKey = firstPoint.edgeKey;
+    contour.push({ x: firstPoint.x, y: firstPoint.y, z: firstPoint.z });
+    exitEdgeKey = firstFace.points[1].edgeKey;
+    usedFaces.add(currentIdx);
 
-      const faceData = faceIntersections[currentFaceIndex];
-      const point = faceData.points[currentPointIndex];
-      contour.push({ x: point.x, y: point.y, z: point.z });
+    let safety = 0;
+    const maxIterations = faceIntersections.length * 2 + 10;
 
-      const nextPoint = faceData.points[1 - currentPointIndex];
+    while (safety < maxIterations) {
+      safety++;
 
-      let nextFaceIndex = -1;
-      let nextPointIdx = 0;
-      let minDist = Infinity;
+      let nextIdx = -1;
+      let entryPointIdx = -1;
 
       for (let i = 0; i < faceIntersections.length; i++) {
-        if (i === currentFaceIndex || usedFaces.has(i)) continue;
+        if (i === currentIdx || usedFaces.has(i)) continue;
 
-        const otherFace = faceIntersections[i];
-        for (let j = 0; j < otherFace.points.length; j++) {
-          const dist = distance(nextPoint, otherFace.points[j]);
-          if (dist < minDist && dist < 0.1) {
-            minDist = dist;
-            nextFaceIndex = i;
-            nextPointIdx = j;
+        const face = faceIntersections[i];
+        for (let j = 0; j < face.points.length; j++) {
+          if (face.points[j].edgeKey === exitEdgeKey) {
+            nextIdx = i;
+            entryPointIdx = j;
+            break;
           }
         }
+        if (nextIdx !== -1) break;
       }
 
-      if (nextFaceIndex === -1) {
+      if (nextIdx === -1) break;
+
+      const nextFace = faceIntersections[nextIdx];
+      const entryPoint = nextFace.points[entryPointIdx];
+      const exitPointIdx = entryPointIdx === 0 ? 1 : 0;
+      const exitPoint = nextFace.points[exitPointIdx];
+
+      contour.push({ x: entryPoint.x, y: entryPoint.y, z: entryPoint.z });
+      exitEdgeKey = exitPoint.edgeKey;
+      usedFaces.add(nextIdx);
+      currentIdx = nextIdx;
+
+      if (exitEdgeKey === firstEdgeKey) {
         break;
       }
-
-      currentFaceIndex = nextFaceIndex;
-      currentPointIndex = 1 - nextPointIdx;
     }
 
     if (contour.length >= 3) {
@@ -220,9 +243,32 @@ function buildContours(
   return contours;
 }
 
-function computeContoursArea(
+function distanceBetweenPoints(a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  const dz = a.z - b.z;
+  return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function projectTo2D(
+  point: SectionContourPoint,
+  axis: string
+): { x: number; y: number } {
+  switch (axis) {
+    case 'x':
+      return { x: point.y, y: point.z };
+    case 'y':
+      return { x: point.x, y: point.z };
+    case 'z':
+      return { x: point.x, y: point.y };
+    default:
+      return { x: point.x, y: point.z };
+  }
+}
+
+function computeContoursArea2D(
   contours: SectionContourPoint[][],
-  normal: Vector3
+  axis: string
 ): number {
   let totalArea = 0;
 
@@ -233,16 +279,9 @@ function computeContoursArea(
     const n = contour.length;
 
     for (let i = 0; i < n; i++) {
-      const p1 = contour[i];
-      const p2 = contour[(i + 1) % n];
-
-      const crossProduct = {
-        x: p1.y * p2.z - p1.z * p2.y,
-        y: p1.z * p2.x - p1.x * p2.z,
-        z: p1.x * p2.y - p1.y * p2.x,
-      };
-
-      area += dot(crossProduct, normal);
+      const p1 = projectTo2D(contour[i], axis);
+      const p2 = projectTo2D(contour[(i + 1) % n], axis);
+      area += p1.x * p2.y - p2.x * p1.y;
     }
 
     totalArea += Math.abs(area) / 2;
@@ -263,7 +302,7 @@ function computeContoursPerimeter(contours: SectionContourPoint[][]): number {
     for (let i = 0; i < n; i++) {
       const p1 = contour[i];
       const p2 = contour[(i + 1) % n];
-      perimeter += distance(p1, p2);
+      perimeter += distanceBetweenPoints(p1, p2);
     }
 
     totalPerimeter += perimeter;
@@ -282,43 +321,21 @@ function computeSectionThickness(
 
   const samples: SectionThicknessSample[] = [];
   const bvh = buildBVH(model.vertices, model.indices);
-  const faceNormals = computeFaceNormals(model.vertices, model.indices);
-
   const planeNormal = getPlaneNormal(plane.axis);
 
   for (const contour of contours) {
     if (contour.length < 2) continue;
 
     const contourLength = computeContourLength(contour);
+    if (contourLength <= 0) continue;
+
     const step = contourLength / resolution;
 
-    let accumulatedDist = 0;
-    let currentSegment = 0;
+    for (let i = 0; i <= resolution; i++) {
+      const targetDist = Math.min(i * step, contourLength * 0.999);
+      const samplePoint = getPointAtDistance(contour, targetDist);
 
-    for (let i = 0; i < resolution; i++) {
-      const targetDist = i * step;
-
-      while (currentSegment < contour.length - 1 && accumulatedDist < targetDist) {
-        const segStart = contour[currentSegment];
-        const segEnd = contour[currentSegment + 1];
-        const segLength = distance(segStart, segEnd);
-
-        if (accumulatedDist + segLength < targetDist) {
-          accumulatedDist += segLength;
-          currentSegment++;
-        } else {
-          break;
-        }
-      }
-
-      if (currentSegment >= contour.length - 1) break;
-
-      const segStart = contour[currentSegment];
-      const segEnd = contour[currentSegment + 1];
-      const segLength = distance(segStart, segEnd);
-      const t = segLength > 0 ? (targetDist - accumulatedDist) / segLength : 0;
-
-      const samplePoint = lerpVector3(segStart, segEnd, Math.max(0, Math.min(1, t)));
+      if (!samplePoint) continue;
 
       const thickness = raycastThicknessInPlane(
         samplePoint,
@@ -326,7 +343,7 @@ function computeSectionThickness(
         bvh.triangles
       );
 
-      if (thickness > 0 && thickness < 100) {
+      if (thickness > 0 && thickness < 1000) {
         samples.push({
           position: targetDist,
           thickness,
@@ -342,9 +359,37 @@ function computeSectionThickness(
 function computeContourLength(contour: SectionContourPoint[]): number {
   let length = 0;
   for (let i = 0; i < contour.length - 1; i++) {
-    length += distance(contour[i], contour[i + 1]);
+    length += distanceBetweenPoints(contour[i], contour[i + 1]);
   }
   return length;
+}
+
+function getPointAtDistance(
+  contour: SectionContourPoint[],
+  targetDist: number
+): SectionContourPoint | null {
+  if (contour.length < 2) return null;
+
+  let accumulated = 0;
+
+  for (let i = 0; i < contour.length - 1; i++) {
+    const segStart = contour[i];
+    const segEnd = contour[i + 1];
+    const segLen = distanceBetweenPoints(segStart, segEnd);
+
+    if (accumulated + segLen >= targetDist) {
+      const t = segLen > 0 ? (targetDist - accumulated) / segLen : 0;
+      return {
+        x: segStart.x + (segEnd.x - segStart.x) * t,
+        y: segStart.y + (segEnd.y - segStart.y) * t,
+        z: segStart.z + (segEnd.z - segStart.z) * t,
+      };
+    }
+
+    accumulated += segLen;
+  }
+
+  return contour[contour.length - 1];
 }
 
 function raycastThicknessInPlane(
@@ -352,8 +397,16 @@ function raycastThicknessInPlane(
   planeNormal: Vector3,
   triangles: { v0: Vector3; v1: Vector3; v2: Vector3; normal: Vector3 }[]
 ): number {
-  const rayDir = scale(normalize(planeNormal), -1);
-  const rayOrigin = add(point, scale(rayDir, -0.01));
+  const rayDir = {
+    x: -planeNormal.x,
+    y: -planeNormal.y,
+    z: -planeNormal.z,
+  };
+  const rayOrigin = {
+    x: point.x + planeNormal.x * 0.01,
+    y: point.y + planeNormal.y * 0.01,
+    z: point.z + planeNormal.z * 0.01,
+  };
 
   let minT = Infinity;
 
@@ -372,7 +425,7 @@ function computeThicknessDistribution(
   minThickness: number,
   maxThickness: number
 ): { range: string; count: number; percentage: number }[] {
-  if (samples.length === 0 || maxThickness === minThickness) {
+  if (samples.length === 0 || maxThickness <= minThickness) {
     return [];
   }
 

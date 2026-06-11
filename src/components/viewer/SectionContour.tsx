@@ -7,10 +7,13 @@ interface SectionContourProps {
 }
 
 export function SectionContour({ result }: SectionContourProps) {
+  const CLIP_OFFSET = 0.05;
+
   const lineObjects = useMemo(() => {
     if (!result || result.contourPoints.length === 0) return [];
 
     const objects: (THREE.Line | THREE.LineSegments)[] = [];
+    const axis = result.plane.axis;
 
     for (const contour of result.contourPoints) {
       if (contour.length < 2) continue;
@@ -21,11 +24,23 @@ export function SectionContour({ result }: SectionContourProps) {
         positions[i * 3] = contour[i].x;
         positions[i * 3 + 1] = contour[i].y;
         positions[i * 3 + 2] = contour[i].z;
+
+        switch (axis) {
+          case 'x':
+            positions[i * 3] += CLIP_OFFSET;
+            break;
+          case 'y':
+            positions[i * 3 + 1] += CLIP_OFFSET;
+            break;
+          case 'z':
+            positions[i * 3 + 2] += CLIP_OFFSET;
+            break;
+        }
       }
 
-      positions[contour.length * 3] = contour[0].x;
-      positions[contour.length * 3 + 1] = contour[0].y;
-      positions[contour.length * 3 + 2] = contour[0].z;
+      positions[contour.length * 3] = positions[0];
+      positions[contour.length * 3 + 1] = positions[1];
+      positions[contour.length * 3 + 2] = positions[2];
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -103,7 +118,7 @@ export function SectionContour({ result }: SectionContourProps) {
         const posAttr = geometry.attributes.position;
         const positions = posAttr.array as Float32Array;
 
-        const planePos = result.plane.position;
+        const planePos = result.plane.position + CLIP_OFFSET;
 
         for (let i = 0; i < positions.length / 3; i++) {
           const x = positions[i * 3];

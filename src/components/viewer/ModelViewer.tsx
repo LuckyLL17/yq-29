@@ -28,6 +28,39 @@ function SceneBackground() {
   return null;
 }
 
+function SceneClippingSetup() {
+  const { gl } = useThree();
+  const analysisMode = useAppStore((state) => state.analysisMode);
+  const sectionPlane = useAppStore((state) => state.sectionPlane);
+
+  useEffect(() => {
+    if (analysisMode === 'section' && sectionPlane.visible) {
+      const normal = new THREE.Vector3();
+      switch (sectionPlane.axis) {
+        case 'x':
+          normal.set(1, 0, 0);
+          break;
+        case 'y':
+          normal.set(0, 1, 0);
+          break;
+        case 'z':
+          normal.set(0, 0, 1);
+          break;
+        default:
+          normal.set(0, 1, 0);
+      }
+      const plane = new THREE.Plane(normal, -sectionPlane.position);
+      gl.clippingPlanes = [plane];
+      gl.localClippingEnabled = true;
+    } else {
+      gl.clippingPlanes = [];
+      gl.localClippingEnabled = false;
+    }
+  }, [analysisMode, sectionPlane.axis, sectionPlane.position, sectionPlane.visible, gl]);
+
+  return null;
+}
+
 function Scene() {
   const model = useAppStore((state) => state.model);
   const analysisMode = useAppStore((state) => state.analysisMode);
@@ -54,6 +87,8 @@ function Scene() {
 
   return (
     <>
+      <SceneClippingSetup />
+      <SceneBackground />
       <ambientLight intensity={0.4} />
       <directionalLight
         position={[100, 150, 100]}
@@ -64,39 +99,37 @@ function Scene() {
       <directionalLight position={[-80, 60, -80]} intensity={0.5} />
       <pointLight position={[0, 80, 0]} intensity={0.3} color="#06b6d4" />
 
-      <Center>
-        <group>
-          <ModelMesh
-            model={{
-              vertices: displayModel.vertices,
-              indices: displayModel.indices,
-              normals: displayModel.normals,
-            }}
+      <group>
+        <ModelMesh
+          model={{
+            vertices: displayModel.vertices,
+            indices: displayModel.indices,
+            normals: displayModel.normals,
+          }}
+        />
+
+        {analysisMode === 'holes' && drainHoleResult && (
+          <DrainHolesDisplay holes={drainHoleResult.holes} />
+        )}
+
+        {analysisMode === 'thickness' && wallThicknessResult && (
+          <ThicknessSamplesDisplay
+            samples={wallThicknessResult.samples}
+            minThickness={wallThicknessResult.minThickness}
+            maxThickness={wallThicknessResult.maxThickness}
           />
+        )}
 
-          {analysisMode === 'holes' && drainHoleResult && (
-            <DrainHolesDisplay holes={drainHoleResult.holes} />
-          )}
-
-          {analysisMode === 'thickness' && wallThicknessResult && (
-            <ThicknessSamplesDisplay
-              samples={wallThicknessResult.samples}
-              minThickness={wallThicknessResult.minThickness}
-              maxThickness={wallThicknessResult.maxThickness}
+        {analysisMode === 'section' && (
+          <>
+            <SectionPlane
+              modelSize={displayModel.boundingBox.size}
+              modelCenter={displayModel.boundingBox.center}
             />
-          )}
-
-          {analysisMode === 'section' && (
-            <>
-              <SectionPlane
-                modelSize={displayModel.boundingBox.size}
-                modelCenter={displayModel.boundingBox.center}
-              />
-              <SectionContour result={sectionResult} />
-            </>
-          )}
-        </group>
-      </Center>
+            <SectionContour result={sectionResult} />
+          </>
+        )}
+      </group>
 
       {showGrid && (
         <Grid
