@@ -1,10 +1,39 @@
-import { Box, FileText, Settings, HelpCircle, Moon, Sun } from 'lucide-react';
+import { FileText, Settings, HelpCircle, Moon, Sun } from 'lucide-react';
+import { useAppStore, type DialogType } from '@/store/useAppStore';
+import { Box } from 'lucide-react';
 
-interface TopNavBarProps {
-  onToggleTheme?: () => void;
+function NavButton({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm"
+    >
+      <Icon size={16} />
+      <span>{label}</span>
+    </button>
+  );
 }
 
-export function TopNavBar({ onToggleTheme }: TopNavBarProps) {
+function ThemeToggleButton() {
+  const isDarkMode = useAppStore((state) => state.isDarkMode);
+  const toggleDarkMode = useAppStore((state) => state.toggleDarkMode);
+
+  return (
+    <button
+      onClick={toggleDarkMode}
+      className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+      title={isDarkMode ? '切换亮色模式' : '切换暗色模式'}
+    >
+      {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  );
+}
+
+export function TopNavBar() {
+  const setActiveDialog = useAppStore((state) => state.setActiveDialog);
+
+  const openDialog = (type: DialogType) => () => setActiveDialog(type);
+
   return (
     <header className="h-14 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4">
       <div className="flex items-center gap-3">
@@ -20,27 +49,13 @@ export function TopNavBar({ onToggleTheme }: TopNavBarProps) {
       </div>
 
       <div className="flex items-center gap-1">
-        <button className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm">
-          <FileText size={16} />
-          <span>项目</span>
-        </button>
-        <button className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm">
-          <Settings size={16} />
-          <span>设置</span>
-        </button>
-        <button className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-2 text-sm">
-          <HelpCircle size={16} />
-          <span>帮助</span>
-        </button>
+        <NavButton icon={FileText} label="项目" onClick={openDialog('project')} />
+        <NavButton icon={Settings} label="设置" onClick={openDialog('settings')} />
+        <NavButton icon={HelpCircle} label="帮助" onClick={openDialog('help')} />
 
         <div className="w-px h-6 bg-slate-700 mx-2" />
 
-        <button
-          onClick={onToggleTheme}
-          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
-        >
-          <Moon size={18} />
-        </button>
+        <ThemeToggleButton />
       </div>
     </header>
   );

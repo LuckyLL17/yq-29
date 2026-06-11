@@ -11,12 +11,16 @@ import type {
   Vector3,
 } from '@/types';
 
+export type DialogType = 'none' | 'project' | 'settings' | 'help';
+
 interface AppState {
   model: ModelData | null;
   modelFileName: string;
   isLoading: boolean;
   analysisMode: AnalysisMode;
   visualizationMode: VisualizationMode;
+  isDarkMode: boolean;
+  activeDialog: DialogType;
 
   draftAngleThreshold: number;
   draftDirection: Vector3;
@@ -58,6 +62,9 @@ interface AppState {
   setShowGrid: (show: boolean) => void;
   setShowAxes: (show: boolean) => void;
   setAutoRotate: (auto: boolean) => void;
+  toggleDarkMode: () => void;
+  setActiveDialog: (dialog: DialogType) => void;
+  closeDialog: () => void;
 
   resetAnalysis: () => void;
 }
@@ -93,6 +100,8 @@ export const useAppStore = create<AppState>((set) => ({
   showGrid: true,
   showAxes: true,
   autoRotate: false,
+  isDarkMode: true,
+  activeDialog: 'none',
 
   setModel: (model, fileName = '') =>
     set({ model, modelFileName: fileName, draftAngleResult: null, wallThicknessResult: null, drainHoleResult: null, cycleResult: null }),
@@ -118,6 +127,9 @@ export const useAppStore = create<AppState>((set) => ({
   setShowGrid: (show) => set({ showGrid: show }),
   setShowAxes: (show) => set({ showAxes: show }),
   setAutoRotate: (auto) => set({ autoRotate: auto }),
+  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+  setActiveDialog: (dialog) => set({ activeDialog: dialog }),
+  closeDialog: () => set({ activeDialog: 'none' }),
 
   resetAnalysis: () =>
     set({
