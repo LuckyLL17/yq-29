@@ -7,7 +7,29 @@ export default {
     container: {
       center: true,
     },
-    extend: {},
+    extend: {
+      colors: {
+        surface: {
+          base: "var(--bg-base)",
+          panel: "var(--bg-panel)",
+          elevated: "var(--bg-elevated)",
+          inset: "var(--bg-inset)",
+          hover: "var(--bg-hover)",
+          active: "var(--bg-active)",
+          input: "var(--bg-input)",
+        },
+        edge: {
+          base: "var(--border-base)",
+          subtle: "var(--border-subtle)",
+        },
+        content: {
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
+          faint: "var(--text-faint)",
+        },
+      },
+    },
   },
   plugins: [],
 };

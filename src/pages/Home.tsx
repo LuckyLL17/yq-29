@@ -21,10 +21,8 @@ function ThemeClassSync() {
 }
 
 export default function Home() {
-  const isDarkMode = useAppStore((state) => state.isDarkMode);
-
   return (
-    <div className={`h-screen w-screen flex flex-col overflow-hidden ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-surface-base">
       <ThemeClassSync />
       <TopNavBar />
 

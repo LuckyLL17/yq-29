@@ -56,38 +56,38 @@ export function ProjectMenu() {
         <div className="space-y-3">
           <button
             onClick={handleNewProject}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors text-left"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-surface-inset/50 hover:bg-surface-hover rounded-lg transition-colors text-left"
           >
             <FilePlus size={20} className="text-cyan-400" />
             <div>
-              <p className="text-sm font-medium text-slate-200">新建项目</p>
-              <p className="text-xs text-slate-400">清空当前模型和分析结果</p>
+              <p className="text-sm font-medium text-content-secondary">新建项目</p>
+              <p className="text-xs text-content-muted">清空当前模型和分析结果</p>
             </div>
           </button>
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center gap-3 px-4 py-3 bg-slate-700/50 hover:bg-slate-700 rounded-lg transition-colors text-left"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-surface-inset/50 hover:bg-surface-hover rounded-lg transition-colors text-left"
           >
             <FolderOpen size={20} className="text-green-400" />
             <div>
-              <p className="text-sm font-medium text-slate-200">打开模型文件</p>
-              <p className="text-xs text-slate-400">支持 STL / OBJ 格式</p>
+              <p className="text-sm font-medium text-content-secondary">打开模型文件</p>
+              <p className="text-xs text-content-muted">支持 STL / OBJ 格式</p>
             </div>
           </button>
 
-          <div className="border-t border-slate-700 pt-3">
-            <p className="text-xs text-slate-500 mb-2 px-1">示例模型</p>
+          <div className="border-t border-edge-subtle pt-3">
+            <p className="text-xs text-content-faint mb-2 px-1">示例模型</p>
             <div className="flex gap-2">
               <button
                 onClick={() => handleLoadSample('box')}
-                className="flex-1 py-2.5 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors"
+                className="flex-1 py-2.5 bg-surface-inset/50 hover:bg-surface-hover rounded-lg text-sm text-content-secondary transition-colors"
               >
                 盒状模型
               </button>
               <button
                 onClick={() => handleLoadSample('bowl')}
-                className="flex-1 py-2.5 bg-slate-700/50 hover:bg-slate-700 rounded-lg text-sm text-slate-300 transition-colors"
+                className="flex-1 py-2.5 bg-surface-inset/50 hover:bg-surface-hover rounded-lg text-sm text-content-secondary transition-colors"
               >
                 碗状模型
               </button>
@@ -97,12 +97,12 @@ export function ProjectMenu() {
           {model && (
             <button
               onClick={handleReset}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-slate-700/50 hover:bg-orange-900/30 border border-slate-600 hover:border-orange-700 rounded-lg transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-surface-inset/50 hover:bg-orange-900/30 border border-edge-base hover:border-orange-700 rounded-lg transition-colors text-left"
             >
               <RotateCcw size={20} className="text-orange-400" />
               <div>
-                <p className="text-sm font-medium text-slate-200">重置分析结果</p>
-                <p className="text-xs text-slate-400">保留模型，清除所有分析数据</p>
+                <p className="text-sm font-medium text-content-secondary">重置分析结果</p>
+                <p className="text-xs text-content-muted">保留模型，清除所有分析数据</p>
               </div>
             </button>
           )}

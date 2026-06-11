@@ -31,12 +31,12 @@ export function Modal({ isOpen, onClose, title, children, width = 'max-w-lg' }: 
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className={`${width} w-full mx-4 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-base font-semibold text-slate-100">{title}</h2>
+      <div className={`${width} w-full mx-4 bg-surface-elevated border border-edge-base rounded-xl shadow-2xl`}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-edge-subtle">
+          <h2 className="text-base font-semibold text-content-primary">{title}</h2>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-1 text-content-muted hover:text-content-primary hover:bg-surface-hover rounded-lg transition-colors"
           >
             <X size={18} />
           </button>

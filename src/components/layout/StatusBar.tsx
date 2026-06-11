@@ -22,9 +22,9 @@ export function StatusBar() {
   };
 
   return (
-    <footer className="h-7 bg-slate-900 border-t border-slate-800 flex items-center justify-between px-4 text-xs">
+    <footer className="h-7 bg-surface-panel border-t border-edge-base flex items-center justify-between px-4 text-xs">
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5 text-slate-400">
+        <div className="flex items-center gap-1.5 text-content-muted">
           <Box size={12} />
           <span>
             {model
@@ -33,9 +33,9 @@ export function StatusBar() {
           </span>
         </div>
 
-        <div className="w-px h-3 bg-slate-700" />
+        <div className="w-px h-3 bg-edge-base" />
 
-        <div className="flex items-center gap-1.5 text-slate-400">
+        <div className="flex items-center gap-1.5 text-content-muted">
           <Layers size={12} />
           <span>{visLabels[visualizationMode] || '实体模式'}</span>
         </div>
@@ -48,14 +48,14 @@ export function StatusBar() {
               isLoading ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'
             }`}
           />
-          <span className="text-slate-400">
+          <span className="text-content-muted">
             {isLoading ? '计算中...' : modeLabels[analysisMode]}
           </span>
         </div>
 
-        <div className="w-px h-3 bg-slate-700" />
+        <div className="w-px h-3 bg-edge-base" />
 
-        <div className="flex items-center gap-1.5 text-slate-500">
+        <div className="flex items-center gap-1.5 text-content-faint">
           <Zap size={12} />
           <span>v1.0.0</span>
         </div>

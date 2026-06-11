@@ -1,5 +1,5 @@
-import { Suspense, useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Suspense, useRef, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid, Html, Center } from '@react-three/drei';
 import { EffectComposer, Bloom, SSAO } from '@react-three/postprocessing';
 import * as THREE from 'three';
@@ -8,6 +8,22 @@ import { ModelMesh } from './ModelMesh';
 import { DrainHolesDisplay } from './DrainHolesDisplay';
 import { ThicknessSamplesDisplay } from './ThicknessSamplesDisplay';
 import { createSampleBoxModel } from '@/utils/modelLoader';
+
+function SceneBackground() {
+  const isDarkMode = useAppStore((state) => state.isDarkMode);
+  const { scene, gl } = useThree();
+
+  useEffect(() => {
+    const bgColor = isDarkMode ? '#0f172a' : '#e2e8f0';
+    const fogColor = isDarkMode ? '#0f172a' : '#e2e8f0';
+    scene.background = new THREE.Color(bgColor);
+    if (scene.fog instanceof THREE.Fog) {
+      scene.fog.color.set(fogColor);
+    }
+  }, [isDarkMode, scene]);
+
+  return null;
+}
 
 function Scene() {
   const model = useAppStore((state) => state.model);
@@ -64,10 +80,10 @@ function Scene() {
           args={[200, 200]}
           cellSize={5}
           cellThickness={0.5}
-          cellColor="#1e293b"
+          cellColor={useAppStore.getState().isDarkMode ? '#1e293b' : '#cbd5e1'}
           sectionSize={25}
           sectionThickness={1}
-          sectionColor="#334155"
+          sectionColor={useAppStore.getState().isDarkMode ? '#334155' : '#94a3b8'}
           fadeDistance={300}
           fadeStrength={1}
           followCamera={false}
@@ -103,7 +119,7 @@ export function ModelViewer() {
   const isLoading = useAppStore((state) => state.isLoading);
 
   return (
-    <div className="w-full h-full relative bg-slate-950">
+    <div className="w-full h-full relative bg-surface-base">
       <Canvas
         shadows
         camera={{ position: [120, 100, 120], fov: 45 }}
@@ -112,13 +128,14 @@ export function ModelViewer() {
       >
         <color attach="background" args={['#0f172a']} />
         <fog attach="fog" args={['#0f172a', 200, 500]} />
+        <SceneBackground />
         <Suspense fallback={null}>
           <Scene />
         </Suspense>
       </Canvas>
 
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-panel/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
             <p className="text-cyan-400 font-medium">正在计算分析...</p>
@@ -127,7 +144,7 @@ export function ModelViewer() {
       )}
 
       <div className="absolute bottom-4 left-4 flex gap-2">
-        <div className="px-3 py-1.5 bg-slate-800/90 backdrop-blur-sm rounded-lg text-xs text-slate-400 border border-slate-700">
+        <div className="px-3 py-1.5 bg-surface-elevated/90 backdrop-blur-sm rounded-lg text-xs text-content-muted border border-edge-subtle">
           左键旋转 | 右键平移 | 滚轮缩放
         </div>
       </div>

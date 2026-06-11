@@ -96,13 +96,13 @@ export function RightPanel() {
   };
 
   return (
-    <div className="w-80 h-full bg-slate-900 border-l border-slate-800 flex flex-col overflow-hidden">
-      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-200">分析结果</h3>
+    <div className="w-80 h-full bg-surface-panel border-l border-edge-base flex flex-col overflow-hidden">
+      <div className="p-4 border-b border-edge-subtle flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-content-secondary">分析结果</h3>
         <button
           onClick={exportReport}
           disabled={!draftAngleResult && !wallThicknessResult && !drainHoleResult && !cycleResult}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download size={14} />
           导出报告
@@ -112,12 +112,12 @@ export function RightPanel() {
       <div className="flex-1 overflow-y-auto">
         {analysisMode === 'none' && (
           <div className="p-4">
-            <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+            <div className="bg-surface-elevated/50 rounded-xl p-4 border border-edge-subtle">
               <div className="flex items-start gap-3">
                 <Info size={20} className="text-cyan-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-sm font-medium text-slate-200 mb-1">使用说明</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <h4 className="text-sm font-medium text-content-secondary mb-1">使用说明</h4>
+                  <p className="text-xs text-content-muted leading-relaxed">
                     请从左侧工具栏选择分析工具，系统将自动计算并显示分析结果。
                     支持脱模角度分析、壁厚分布检测、滤水孔规划和成型周期预估。
                   </p>
@@ -127,26 +127,26 @@ export function RightPanel() {
 
             {model && (
               <div className="mt-4">
-                <h4 className="text-sm font-medium text-slate-200 mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-medium text-content-secondary mb-3 flex items-center gap-2">
                   <Triangle size={14} className="text-cyan-400" />
                   模型信息
                 </h4>
-                <div className="bg-slate-800/30 rounded-lg p-3 space-y-2">
+                <div className="bg-surface-elevated/30 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">文件名</span>
-                    <span className="text-slate-200 font-mono">{modelFileName || '示例模型'}</span>
+                    <span className="text-content-muted">文件名</span>
+                    <span className="text-content-secondary font-mono">{modelFileName || '示例模型'}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">顶点数</span>
-                    <span className="text-slate-200 font-mono">{model.vertexCount.toLocaleString()}</span>
+                    <span className="text-content-muted">顶点数</span>
+                    <span className="text-content-secondary font-mono">{model.vertexCount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">面数</span>
-                    <span className="text-slate-200 font-mono">{model.faceCount.toLocaleString()}</span>
+                    <span className="text-content-muted">面数</span>
+                    <span className="text-content-secondary font-mono">{model.faceCount.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">尺寸</span>
-                    <span className="text-slate-200 font-mono text-right">
+                    <span className="text-content-muted">尺寸</span>
+                    <span className="text-content-secondary font-mono text-right">
                       {model.boundingBox.size.x.toFixed(1)} × {model.boundingBox.size.y.toFixed(1)} × {model.boundingBox.size.z.toFixed(1)} mm
                     </span>
                   </div>
@@ -160,26 +160,26 @@ export function RightPanel() {
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Triangle size={16} className="text-orange-400" />
-              <h4 className="text-sm font-medium text-slate-200">脱模角度分析</h4>
+              <h4 className="text-sm font-medium text-content-secondary">脱模角度分析</h4>
             </div>
 
             {draftAngleResult ? (
               <>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">最小</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">最小</p>
                     <p className="text-lg font-bold text-orange-400 font-mono">
                       {draftAngleResult.minAngle.toFixed(1)}°
                     </p>
                   </div>
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">平均</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">平均</p>
                     <p className="text-lg font-bold text-cyan-400 font-mono">
                       {draftAngleResult.avgAngle.toFixed(1)}°
                     </p>
                   </div>
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">最大</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">最大</p>
                     <p className="text-lg font-bold text-green-400 font-mono">
                       {draftAngleResult.maxAngle.toFixed(1)}°
                     </p>
@@ -199,24 +199,24 @@ export function RightPanel() {
                     <CheckCircle size={18} className="text-green-400 flex-shrink-0 mt-0.5" />
                   )}
                   <div>
-                    <p className="text-xs font-medium text-slate-200">
+                    <p className="text-xs font-medium text-content-secondary">
                       {draftAngleResult.undercutFaceCount > 0
                         ? '存在倒扣区域'
                         : '脱模角度合格'}
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-content-muted mt-0.5">
                       共 {draftAngleResult.undercutFaceCount} 个面小于 {draftAngleResult.threshold}°
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-xs text-slate-400 mb-2">角度分布</p>
+                  <p className="text-xs text-content-muted mb-2">角度分布</p>
                   <DraftAngleChart result={draftAngleResult} />
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-content-faint text-sm">
                 正在计算...
               </div>
             )}
@@ -227,45 +227,45 @@ export function RightPanel() {
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Ruler size={16} className="text-cyan-400" />
-              <h4 className="text-sm font-medium text-slate-200">壁厚分布分析</h4>
+              <h4 className="text-sm font-medium text-content-secondary">壁厚分布分析</h4>
             </div>
 
             {wallThicknessResult ? (
               <>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">最薄</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">最薄</p>
                     <p className="text-lg font-bold text-red-400 font-mono">
                       {wallThicknessResult.minThickness.toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-500">mm</p>
+                    <p className="text-xs text-content-faint">mm</p>
                   </div>
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">平均</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">平均</p>
                     <p className="text-lg font-bold text-cyan-400 font-mono">
                       {wallThicknessResult.avgThickness.toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-500">mm</p>
+                    <p className="text-xs text-content-faint">mm</p>
                   </div>
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">最厚</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">最厚</p>
                     <p className="text-lg font-bold text-blue-400 font-mono">
                       {wallThicknessResult.maxThickness.toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-500">mm</p>
+                    <p className="text-xs text-content-faint">mm</p>
                   </div>
                 </div>
 
-                <div className="bg-slate-800/30 rounded-lg p-3">
+                <div className="bg-surface-elevated/30 rounded-lg p-3">
                   <div className="flex justify-between text-xs mb-2">
-                    <span className="text-slate-400">采样点数</span>
-                    <span className="text-slate-200 font-mono">
+                    <span className="text-content-muted">采样点数</span>
+                    <span className="text-content-secondary font-mono">
                       {wallThicknessResult.sampleCount}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-slate-400">壁厚均匀度</span>
-                    <span className="text-slate-200">
+                    <span className="text-content-muted">壁厚均匀度</span>
+                    <span className="text-content-secondary">
                       {wallThicknessResult.maxThickness > 0
                         ? (
                             (1 -
@@ -281,12 +281,12 @@ export function RightPanel() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-slate-400 mb-2">壁厚分布</p>
+                  <p className="text-xs text-content-muted mb-2">壁厚分布</p>
                   <ThicknessChart result={wallThicknessResult} />
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-content-faint text-sm">
                 正在计算...
               </div>
             )}
@@ -297,52 +297,52 @@ export function RightPanel() {
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <CircleDot size={16} className="text-purple-400" />
-              <h4 className="text-sm font-medium text-slate-200">滤水孔规划</h4>
+              <h4 className="text-sm font-medium text-content-secondary">滤水孔规划</h4>
             </div>
 
             {drainHoleResult ? (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">总孔数</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">总孔数</p>
                     <p className="text-2xl font-bold text-purple-400 font-mono">
                       {drainHoleResult.totalCount}
                     </p>
                   </div>
-                  <div className="bg-slate-800/50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-slate-400 mb-1">开孔面积</p>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">开孔面积</p>
                     <p className="text-2xl font-bold text-cyan-400 font-mono">
                       {drainHoleResult.totalArea.toFixed(0)}
                     </p>
-                    <p className="text-xs text-slate-500">mm²</p>
+                    <p className="text-xs text-content-faint">mm²</p>
                   </div>
                 </div>
 
-                <div className="bg-slate-800/30 rounded-lg p-3 space-y-2">
+                <div className="bg-surface-elevated/30 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between items-center text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-orange-500" />
-                      <span className="text-slate-400">吸水孔</span>
+                      <span className="text-content-muted">吸水孔</span>
                     </div>
-                    <span className="text-slate-200 font-mono">{drainHoleResult.suctionCount} 个</span>
+                    <span className="text-content-secondary font-mono">{drainHoleResult.suctionCount} 个</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-cyan-500" />
-                      <span className="text-slate-400">脱水孔</span>
+                      <span className="text-content-muted">脱水孔</span>
                     </div>
-                    <span className="text-slate-200 font-mono">{drainHoleResult.dewateringCount} 个</span>
+                    <span className="text-content-secondary font-mono">{drainHoleResult.dewateringCount} 个</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-800/30 rounded-lg p-3">
+                <div className="bg-surface-elevated/30 rounded-lg p-3">
                   <div className="flex justify-between text-xs mb-2">
-                    <span className="text-slate-400">开孔密度</span>
-                    <span className="text-slate-200 font-mono">
+                    <span className="text-content-muted">开孔密度</span>
+                    <span className="text-content-secondary font-mono">
                       {drainHoleResult.recommendedDensity.toFixed(2)}%
                     </span>
                   </div>
-                  <div className="w-full bg-slate-700 rounded-full h-2">
+                  <div className="w-full bg-surface-inset rounded-full h-2">
                     <div
                       className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2 rounded-full"
                       style={{ width: `${Math.min(drainHoleResult.recommendedDensity * 10, 100)}%` }}
@@ -351,7 +351,7 @@ export function RightPanel() {
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-content-faint text-sm">
                 正在计算...
               </div>
             )}
@@ -362,28 +362,28 @@ export function RightPanel() {
           <div className="p-4 space-y-4">
             <div className="flex items-center gap-2">
               <Clock size={16} className="text-green-400" />
-              <h4 className="text-sm font-medium text-slate-200">成型周期预估</h4>
+              <h4 className="text-sm font-medium text-content-secondary">成型周期预估</h4>
             </div>
 
             {cycleResult ? (
               <>
                 <div className="bg-gradient-to-br from-green-500/20 to-cyan-500/20 rounded-xl p-4 border border-green-500/30 text-center">
-                  <p className="text-xs text-slate-400 mb-1">预估总周期</p>
-                  <p className="text-3xl font-bold text-white font-mono">
+                  <p className="text-xs text-content-muted mb-1">预估总周期</p>
+                  <p className="text-3xl font-bold text-content-primary font-mono">
                     {cycleResult.totalTime.toFixed(1)}
                   </p>
-                  <p className="text-sm text-slate-400">秒</p>
+                  <p className="text-sm text-content-muted">秒</p>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-cyan-500" />
-                      <span className="text-slate-400">吸浆</span>
+                      <span className="text-content-muted">吸浆</span>
                     </div>
-                    <span className="text-slate-200 font-mono">{cycleResult.suctionTime.toFixed(1)}s</span>
+                    <span className="text-content-secondary font-mono">{cycleResult.suctionTime.toFixed(1)}s</span>
                   </div>
-                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                  <div className="w-full bg-surface-inset rounded-full h-1.5">
                     <div
                       className="bg-cyan-500 h-1.5 rounded-full"
                       style={{ width: `${(cycleResult.suctionTime / cycleResult.totalTime) * 100}%` }}
@@ -393,11 +393,11 @@ export function RightPanel() {
                   <div className="flex items-center justify-between text-xs mt-3">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-purple-500" />
-                      <span className="text-slate-400">压制</span>
+                      <span className="text-content-muted">压制</span>
                     </div>
-                    <span className="text-slate-200 font-mono">{cycleResult.pressingTime.toFixed(1)}s</span>
+                    <span className="text-content-secondary font-mono">{cycleResult.pressingTime.toFixed(1)}s</span>
                   </div>
-                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                  <div className="w-full bg-surface-inset rounded-full h-1.5">
                     <div
                       className="bg-purple-500 h-1.5 rounded-full"
                       style={{ width: `${(cycleResult.pressingTime / cycleResult.totalTime) * 100}%` }}
@@ -407,11 +407,11 @@ export function RightPanel() {
                   <div className="flex items-center justify-between text-xs mt-3">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-orange-500" />
-                      <span className="text-slate-400">干燥</span>
+                      <span className="text-content-muted">干燥</span>
                     </div>
-                    <span className="text-slate-200 font-mono">{cycleResult.dryingTime.toFixed(1)}s</span>
+                    <span className="text-content-secondary font-mono">{cycleResult.dryingTime.toFixed(1)}s</span>
                   </div>
-                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                  <div className="w-full bg-surface-inset rounded-full h-1.5">
                     <div
                       className="bg-orange-500 h-1.5 rounded-full"
                       style={{ width: `${(cycleResult.dryingTime / cycleResult.totalTime) * 100}%` }}
@@ -421,11 +421,11 @@ export function RightPanel() {
                   <div className="flex items-center justify-between text-xs mt-3">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded bg-green-500" />
-                      <span className="text-slate-400">脱模</span>
+                      <span className="text-content-muted">脱模</span>
                     </div>
-                    <span className="text-slate-200 font-mono">{cycleResult.demoldingTime.toFixed(1)}s</span>
+                    <span className="text-content-secondary font-mono">{cycleResult.demoldingTime.toFixed(1)}s</span>
                   </div>
-                  <div className="w-full bg-slate-700 rounded-full h-1.5">
+                  <div className="w-full bg-surface-inset rounded-full h-1.5">
                     <div
                       className="bg-green-500 h-1.5 rounded-full"
                       style={{ width: `${(cycleResult.demoldingTime / cycleResult.totalTime) * 100}%` }}
@@ -434,26 +434,26 @@ export function RightPanel() {
                 </div>
 
                 <div>
-                  <p className="text-xs text-slate-400 mb-2">周期分布</p>
+                  <p className="text-xs text-content-muted mb-2">周期分布</p>
                   <CyclePieChart result={cycleResult} />
                 </div>
 
                 <div>
-                  <p className="text-xs text-slate-400 mb-2">灵敏度分析</p>
+                  <p className="text-xs text-content-muted mb-2">灵敏度分析</p>
                   <div className="space-y-1.5">
                     {cycleResult.sensitivityAnalysis.map((item, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between text-xs bg-slate-800/50 rounded px-2 py-1.5"
+                        className="flex items-center justify-between text-xs bg-surface-elevated/50 rounded px-2 py-1.5"
                       >
-                        <span className="text-slate-400">{item.factor}</span>
+                        <span className="text-content-muted">{item.factor}</span>
                         <div className="flex items-center gap-1">
                           {item.impact < -1 ? (
                             <TrendingDown size={12} className="text-green-400" />
                           ) : item.impact > 1 ? (
                             <TrendingUp size={12} className="text-red-400" />
                           ) : (
-                            <Minus size={12} className="text-slate-500" />
+                            <Minus size={12} className="text-content-faint" />
                           )}
                           <span
                             className={`font-mono ${
@@ -470,7 +470,7 @@ export function RightPanel() {
                 </div>
               </>
             ) : (
-              <div className="text-center py-8 text-slate-500 text-sm">
+              <div className="text-center py-8 text-content-faint text-sm">
                 正在计算...
               </div>
             )}

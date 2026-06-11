@@ -25,7 +25,7 @@ export function HelpDialog() {
     <Modal isOpen={activeDialog === 'help'} onClose={closeDialog} title="帮助" width="max-w-xl">
       <div className="space-y-6">
         <div>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">操作指南</h3>
+          <h3 className="text-xs font-semibold text-content-muted uppercase tracking-wider mb-3">操作指南</h3>
           <div className="space-y-3">
             {analysisSteps.map((item) => (
               <div key={item.step} className="flex gap-3">
@@ -33,8 +33,8 @@ export function HelpDialog() {
                   {item.step}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-200">{item.title}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
+                  <p className="text-sm font-medium text-content-secondary">{item.title}</p>
+                  <p className="text-xs text-content-muted mt-0.5">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -42,12 +42,12 @@ export function HelpDialog() {
         </div>
 
         <div>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">快捷操作</h3>
-          <div className="bg-slate-700/30 rounded-lg divide-y divide-slate-700">
+          <h3 className="text-xs font-semibold text-content-muted uppercase tracking-wider mb-3">快捷操作</h3>
+          <div className="bg-surface-inset/30 rounded-lg divide-y divide-edge-subtle">
             {shortcuts.map((item) => (
               <div key={item.key} className="flex items-center justify-between px-4 py-2.5">
-                <span className="text-sm text-slate-300">{item.action}</span>
-                <kbd className="px-2 py-0.5 bg-slate-600 text-slate-200 text-xs rounded font-mono">
+                <span className="text-sm text-content-secondary">{item.action}</span>
+                <kbd className="px-2 py-0.5 bg-surface-active text-content-secondary text-xs rounded font-mono">
                   {item.key}
                 </kbd>
               </div>
@@ -56,7 +56,7 @@ export function HelpDialog() {
         </div>
 
         <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-4">
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-xs text-content-muted leading-relaxed">
             本工具基于浏览器端计算，所有分析均在本地完成，无需上传模型数据。
             支持 STL 和 OBJ 格式的三维模型文件导入。分析结果仅供参考，实际模具设计需结合工艺经验验证。
           </p>

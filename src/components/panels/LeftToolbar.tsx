@@ -132,9 +132,9 @@ export function LeftToolbar() {
   };
 
   return (
-    <div className="w-72 h-full bg-slate-900 border-r border-slate-800 flex flex-col overflow-hidden">
-      <div className="p-4 border-b border-slate-800">
-        <h3 className="text-sm font-semibold text-slate-200 mb-3">模型导入</h3>
+    <div className="w-72 h-full bg-surface-panel border-r border-edge-base flex flex-col overflow-hidden">
+      <div className="p-4 border-b border-edge-subtle">
+        <h3 className="text-sm font-semibold text-content-secondary mb-3">模型导入</h3>
         <div className="space-y-2">
           <input
             ref={fileInputRef}
@@ -153,13 +153,13 @@ export function LeftToolbar() {
           <div className="flex gap-2">
             <button
               onClick={() => handleLoadSample('box')}
-              className="flex-1 px-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors"
+              className="flex-1 px-2 py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
             >
               盒状示例
             </button>
             <button
               onClick={() => handleLoadSample('bowl')}
-              className="flex-1 px-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors"
+              className="flex-1 px-2 py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors"
             >
               碗状示例
             </button>
@@ -167,8 +167,8 @@ export function LeftToolbar() {
         </div>
       </div>
 
-      <div className="p-4 border-b border-slate-800">
-        <h3 className="text-sm font-semibold text-slate-200 mb-3">分析工具</h3>
+      <div className="p-4 border-b border-edge-subtle">
+        <h3 className="text-sm font-semibold text-content-secondary mb-3">分析工具</h3>
         <div className="grid grid-cols-2 gap-2">
           {tools.map((tool) => {
             const Icon = tool.icon;
@@ -180,7 +180,7 @@ export function LeftToolbar() {
                 className={`flex flex-col items-center gap-1.5 p-3 rounded-lg transition-all ${
                   isActive
                     ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-slate-300'
+                    : 'bg-surface-elevated text-content-muted border border-edge-subtle hover:bg-surface-hover hover:text-content-secondary'
                 }`}
               >
                 <Icon size={20} />
@@ -192,11 +192,11 @@ export function LeftToolbar() {
       </div>
 
       {analysisMode === 'draft' && (
-        <div className="p-4 border-b border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-200 mb-3">脱模角度设置</h3>
+        <div className="p-4 border-b border-edge-subtle">
+          <h3 className="text-sm font-semibold text-content-secondary mb-3">脱模角度设置</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">
+              <label className="text-xs text-content-muted block mb-1">
                 最小脱模角: {draftAngleThreshold}°
               </label>
               <input
@@ -206,11 +206,11 @@ export function LeftToolbar() {
                 step="0.5"
                 value={draftAngleThreshold}
                 onChange={(e) => setDraftAngleThreshold(parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">脱模方向</label>
+              <label className="text-xs text-content-muted block mb-1">脱模方向</label>
               <div className="flex gap-2">
                 {[
                   { label: '+Y', dir: { x: 0, y: 1, z: 0 } },
@@ -226,7 +226,7 @@ export function LeftToolbar() {
                       draftDirection.z === opt.dir.z &&
                       draftDirection.x === opt.dir.x
                         ? 'bg-cyan-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-surface-active text-content-secondary hover:bg-surface-inset'
                     }`}
                   >
                     {opt.label}
@@ -245,11 +245,11 @@ export function LeftToolbar() {
       )}
 
       {analysisMode === 'thickness' && (
-        <div className="p-4 border-b border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-200 mb-3">壁厚分析设置</h3>
+        <div className="p-4 border-b border-edge-subtle">
+          <h3 className="text-sm font-semibold text-content-secondary mb-3">壁厚分析设置</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">
+              <label className="text-xs text-content-muted block mb-1">
                 采样点数: {thicknessSampleCount}
               </label>
               <input
@@ -259,7 +259,7 @@ export function LeftToolbar() {
                 step="100"
                 value={thicknessSampleCount}
                 onChange={(e) => setThicknessSampleCount(parseInt(e.target.value))}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
             <button
@@ -273,11 +273,11 @@ export function LeftToolbar() {
       )}
 
       {analysisMode === 'holes' && (
-        <div className="p-4 border-b border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-200 mb-3">滤水孔设置</h3>
+        <div className="p-4 border-b border-edge-subtle">
+          <h3 className="text-sm font-semibold text-content-secondary mb-3">滤水孔设置</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">
+              <label className="text-xs text-content-muted block mb-1">
                 孔径: {holeDiameter}mm
               </label>
               <input
@@ -287,11 +287,11 @@ export function LeftToolbar() {
                 step="0.5"
                 value={holeDiameter}
                 onChange={(e) => setHoleDiameter(parseFloat(e.target.value))}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">
+              <label className="text-xs text-content-muted block mb-1">
                 孔间距: {holeSpacing}mm
               </label>
               <input
@@ -301,7 +301,7 @@ export function LeftToolbar() {
                 step="1"
                 value={holeSpacing}
                 onChange={(e) => setHoleSpacing(parseInt(e.target.value))}
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
             <button
@@ -315,15 +315,15 @@ export function LeftToolbar() {
       )}
 
       {analysisMode === 'cycle' && (
-        <div className="p-4 border-b border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-200 mb-3">工艺参数</h3>
+        <div className="p-4 border-b border-edge-subtle">
+          <h3 className="text-sm font-semibold text-content-secondary mb-3">工艺参数</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">材料类型</label>
+              <label className="text-xs text-content-muted block mb-1">材料类型</label>
               <select
                 value={cycleParameters.materialType}
                 onChange={(e) => setCycleParameters({ materialType: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-surface-input border border-edge-base rounded-lg text-sm text-content-secondary focus:outline-none focus:border-cyan-500"
               >
                 {MATERIAL_OPTIONS.map((m) => (
                   <option key={m} value={m}>
@@ -333,7 +333,7 @@ export function LeftToolbar() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">
+              <label className="text-xs text-content-muted block mb-1">
                 目标壁厚: {cycleParameters.targetThickness}mm
               </label>
               <input
@@ -345,11 +345,11 @@ export function LeftToolbar() {
                 onChange={(e) =>
                   setCycleParameters({ targetThickness: parseFloat(e.target.value) })
                 }
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">
+              <label className="text-xs text-content-muted block mb-1">
                 成型温度: {cycleParameters.temperature}°C
               </label>
               <input
@@ -361,11 +361,11 @@ export function LeftToolbar() {
                 onChange={(e) =>
                   setCycleParameters({ temperature: parseInt(e.target.value) })
                 }
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">
+              <label className="text-xs text-content-muted block mb-1">
                 成型压力: {cycleParameters.pressure}MPa
               </label>
               <input
@@ -377,7 +377,7 @@ export function LeftToolbar() {
                 onChange={(e) =>
                   setCycleParameters({ pressure: parseFloat(e.target.value) })
                 }
-                className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
               />
             </div>
             <button
@@ -391,10 +391,10 @@ export function LeftToolbar() {
       )}
 
       <div className="p-4 flex-1 overflow-y-auto">
-        <h3 className="text-sm font-semibold text-slate-200 mb-3">视图设置</h3>
+        <h3 className="text-sm font-semibold text-content-secondary mb-3">视图设置</h3>
         <div className="space-y-2">
           <div>
-            <label className="text-xs text-slate-400 block mb-1">显示模式</label>
+            <label className="text-xs text-content-muted block mb-1">显示模式</label>
             <div className="flex gap-2">
               {[
                 { id: 'solid', label: '实体', icon: Layers },
@@ -410,7 +410,7 @@ export function LeftToolbar() {
                     className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-lg transition-colors ${
                       isActive
                         ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                        : 'bg-surface-elevated text-content-muted border border-edge-subtle hover:bg-surface-hover'
                     }`}
                   >
                     <Icon size={16} />
@@ -427,7 +427,7 @@ export function LeftToolbar() {
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-colors ${
                 showGrid
                   ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                  : 'bg-surface-elevated text-content-muted border border-edge-subtle hover:bg-surface-hover'
               }`}
             >
               <Grid3X3 size={14} />
@@ -438,7 +438,7 @@ export function LeftToolbar() {
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-colors ${
                 showAxes
                   ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                  : 'bg-surface-elevated text-content-muted border border-edge-subtle hover:bg-surface-hover'
               }`}
             >
               <RotateCcw size={14} />
@@ -449,7 +449,7 @@ export function LeftToolbar() {
               className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs transition-colors ${
                 autoRotate
                   ? 'bg-cyan-600/20 text-cyan-400 border border-cyan-500/50'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                  : 'bg-surface-elevated text-content-muted border border-edge-subtle hover:bg-surface-hover'
               }`}
             >
               {autoRotate ? <Pause size={14} /> : <Play size={14} />}
