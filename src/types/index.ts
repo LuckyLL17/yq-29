@@ -91,6 +91,38 @@ export interface MoldingCycleResult {
   }[];
 }
 
-export type AnalysisMode = 'none' | 'draft' | 'thickness' | 'holes' | 'cycle';
+export type AnalysisMode = 'none' | 'draft' | 'thickness' | 'holes' | 'cycle' | 'section';
 
 export type VisualizationMode = 'solid' | 'wireframe' | 'xray';
+
+export type SectionAxis = 'x' | 'y' | 'z';
+
+export interface SectionPlane {
+  axis: SectionAxis;
+  position: number;
+  visible: boolean;
+}
+
+export interface SectionContourPoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface SectionThicknessSample {
+  position: number;
+  thickness: number;
+  normal: Vector3;
+}
+
+export interface SectionResult {
+  contourPoints: SectionContourPoint[][];
+  area: number;
+  perimeter: number;
+  thicknessSamples: SectionThicknessSample[];
+  minThickness: number;
+  maxThickness: number;
+  avgThickness: number;
+  thicknessDistribution: { range: string; count: number; percentage: number }[];
+  plane: SectionPlane;
+}

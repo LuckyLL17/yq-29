@@ -11,6 +11,7 @@ import {
   Eye,
   Play,
   Pause,
+  Scissors,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { loadModelFromFile, createSampleBoxModel, createSampleBowlModel } from '@/utils/modelLoader';
@@ -18,13 +19,15 @@ import { analyzeDraftAngles } from '@/utils/draftAngle';
 import { analyzeWallThickness } from '@/utils/wallThickness';
 import { planDrainHoles } from '@/utils/drainHoles';
 import { estimateMoldingCycle, MATERIAL_OPTIONS } from '@/utils/moldingCycle';
-import type { AnalysisMode, VisualizationMode } from '@/types';
+import { computeSection, getPlaneBounds } from '@/utils/section';
+import type { AnalysisMode, VisualizationMode, SectionAxis } from '@/types';
 
 const tools = [
   { id: 'draft', label: '脱模角度', icon: MoveUp },
   { id: 'thickness', label: '壁厚分析', icon: Ruler },
   { id: 'holes', label: '滤水孔', icon: CircleDot },
   { id: 'cycle', label: '成型周期', icon: Clock },
+  { id: 'section', label: '截面分析', icon: Scissors },
 ] as const;
 
 export function LeftToolbar() {
@@ -56,6 +59,15 @@ export function LeftToolbar() {
   const cycleParameters = useAppStore((state) => state.cycleParameters);
   const setCycleParameters = useAppStore((state) => state.setCycleParameters);
   const setCycleResult = useAppStore((state) => state.setCycleResult);
+
+  const sectionPlane = useAppStore((state) => state.sectionPlane);
+  const setSectionPlane = useAppStore((state) => state.setSectionPlane);
+  const setSectionAxis = useAppStore((state) => state.setSectionAxis);
+  const setSectionPosition = useAppStore((state) => state.setSectionPosition);
+  const setSectionResult = useAppStore((state) => state.setSectionResult);
+  const toggleSectionVisible = useAppStore((state) => state.toggleSectionVisible);
+  const sectionThicknessResolution = useAppStore((state) => state.sectionThicknessResolution);
+  const setSectionThicknessResolution = useAppStore((state) => state.setSectionThicknessResolution);
 
   const showGrid = useAppStore((state) => state.showGrid);
   const setShowGrid = useAppStore((state) => state.setShowGrid);
@@ -119,6 +131,22 @@ export function LeftToolbar() {
           case 'cycle': {
             const result = estimateMoldingCycle(cycleParameters, cycleParameters.targetThickness);
             setCycleResult(result);
+            break;
+          }
+          case 'section': {
+            const bounds = getPlaneBounds(model, sectionPlane.axis);
+            const centerPos = (bounds.min + bounds.max) / 2;
+            setSectionPlane({
+              visible: true,
+              position: centerPos,
+              axis: sectionPlane.axis,
+            });
+            const result = computeSection(model, {
+              ...sectionPlane,
+              position: centerPos,
+              visible: true,
+            }, sectionThicknessResolution);
+            setSectionResult(result);
             break;
           }
         }
@@ -382,6 +410,119 @@ export function LeftToolbar() {
             </div>
             <button
               onClick={() => runAnalysis('cycle')}
+              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+            >
+              重新计算
+            </button>
+          </div>
+        </div>
+      )}
+
+      {analysisMode === 'section' && (
+        <div className="p-4 border-b border-edge-subtle">
+          <h3 className="text-sm font-semibold text-content-secondary mb-3">截面分析设置</h3>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-content-muted block mb-1">截面轴向</label>
+              <div className="flex gap-2">
+                {[
+                  { label: 'X轴', axis: 'x' },
+                  { label: 'Y轴', axis: 'y' },
+                  { label: 'Z轴', axis: 'z' },
+                ].map((opt) => (
+                  <button
+                    key={opt.axis}
+                    onClick={() => {
+                      setSectionAxis(opt.axis as SectionAxis);
+                      if (model) {
+                        const bounds = getPlaneBounds(model, opt.axis);
+                        const centerPos = (bounds.min + bounds.max) / 2;
+                        setSectionPosition(centerPos);
+                      }
+                    }}
+                    className={`flex-1 py-1.5 text-xs rounded transition-colors ${
+                      sectionPlane.axis === opt.axis
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-surface-active text-content-secondary hover:bg-surface-inset'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-content-muted block mb-1">
+                截面位置: {sectionPlane.position.toFixed(2)} mm
+              </label>
+              <input
+                type="range"
+                min={model ? getPlaneBounds(model, sectionPlane.axis).min : -100}
+                max={model ? getPlaneBounds(model, sectionPlane.axis).max : 100}
+                step={0.1}
+                value={sectionPlane.position}
+                onChange={(e) => {
+                  const pos = parseFloat(e.target.value);
+                  setSectionPosition(pos);
+                }}
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-content-muted block mb-1">
+                壁厚采样数: {sectionThicknessResolution}
+              </label>
+              <input
+                type="range"
+                min="10"
+                max="200"
+                step="10"
+                value={sectionThicknessResolution}
+                onChange={(e) => setSectionThicknessResolution(parseInt(e.target.value))}
+                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  toggleSectionVisible();
+                  if (!sectionPlane.visible && model) {
+                    const result = computeSection(
+                      model,
+                      sectionPlane,
+                      sectionThicknessResolution
+                    );
+                    setSectionResult(result);
+                  }
+                }}
+                className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                  sectionPlane.visible
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-surface-elevated text-content-secondary hover:bg-surface-hover border border-edge-subtle'
+                }`}
+              >
+                {sectionPlane.visible ? '隐藏截面' : '显示截面'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                if (model) {
+                  setIsLoading(true);
+                  setTimeout(() => {
+                    const result = computeSection(
+                      model,
+                      sectionPlane,
+                      sectionThicknessResolution
+                    );
+                    setSectionResult(result);
+                    setIsLoading(false);
+                  }, 50);
+                }
+              }}
               className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
             >
               重新计算

@@ -7,7 +7,10 @@ import { useAppStore } from '@/store/useAppStore';
 import { ModelMesh } from './ModelMesh';
 import { DrainHolesDisplay } from './DrainHolesDisplay';
 import { ThicknessSamplesDisplay } from './ThicknessSamplesDisplay';
+import { SectionPlane } from './SectionPlane';
+import { SectionContour } from './SectionContour';
 import { createSampleBoxModel } from '@/utils/modelLoader';
+import { computeSection } from '@/utils/section';
 
 function SceneBackground() {
   const isDarkMode = useAppStore((state) => state.isDarkMode);
@@ -30,6 +33,10 @@ function Scene() {
   const analysisMode = useAppStore((state) => state.analysisMode);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
+  const sectionResult = useAppStore((state) => state.sectionResult);
+  const sectionPlane = useAppStore((state) => state.sectionPlane);
+  const sectionThicknessResolution = useAppStore((state) => state.sectionThicknessResolution);
+  const setSectionResult = useAppStore((state) => state.setSectionResult);
   const showGrid = useAppStore((state) => state.showGrid);
   const showAxes = useAppStore((state) => state.showAxes);
   const autoRotate = useAppStore((state) => state.autoRotate);
@@ -37,6 +44,13 @@ function Scene() {
   const displayModel = model || createSampleBoxModel();
 
   const controlsRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (analysisMode === 'section' && displayModel && sectionPlane.visible) {
+      const result = computeSection(displayModel, sectionPlane, sectionThicknessResolution);
+      setSectionResult(result);
+    }
+  }, [sectionPlane.position, sectionPlane.axis, analysisMode, displayModel, sectionPlane.visible, sectionThicknessResolution, setSectionResult]);
 
   return (
     <>
@@ -70,6 +84,16 @@ function Scene() {
               minThickness={wallThicknessResult.minThickness}
               maxThickness={wallThicknessResult.maxThickness}
             />
+          )}
+
+          {analysisMode === 'section' && (
+            <>
+              <SectionPlane
+                modelSize={displayModel.boundingBox.size}
+                modelCenter={displayModel.boundingBox.center}
+              />
+              <SectionContour result={sectionResult} />
+            </>
           )}
         </group>
       </Center>

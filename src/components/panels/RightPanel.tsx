@@ -10,6 +10,8 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
+  Scissors,
+  Square,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { DraftAngleChart, ThicknessChart, CyclePieChart } from '../charts/AnalysisCharts';
@@ -22,6 +24,8 @@ export function RightPanel() {
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
   const cycleResult = useAppStore((state) => state.cycleResult);
+  const sectionResult = useAppStore((state) => state.sectionResult);
+  const sectionPlane = useAppStore((state) => state.sectionPlane);
 
   const exportReport = () => {
     const report = generateReport();
@@ -88,6 +92,20 @@ export function RightPanel() {
       }
     }
 
+    if (sectionResult) {
+      report += '\n--- 截面分析 ---\n';
+      report += `截面轴向: ${sectionResult.plane.axis.toUpperCase()}轴\n`;
+      report += `截面位置: ${sectionResult.plane.position.toFixed(2)} mm\n`;
+      report += `截面积: ${sectionResult.area.toFixed(2)} mm²\n`;
+      report += `截面周长: ${sectionResult.perimeter.toFixed(2)} mm\n`;
+      report += `轮廓数量: ${sectionResult.contourPoints.length}\n`;
+      if (sectionResult.thicknessSamples.length > 0) {
+        report += `最小壁厚: ${sectionResult.minThickness.toFixed(2)} mm\n`;
+        report += `最大壁厚: ${sectionResult.maxThickness.toFixed(2)} mm\n`;
+        report += `平均壁厚: ${sectionResult.avgThickness.toFixed(2)} mm\n`;
+      }
+    }
+
     report += '\n========================================\n';
     report += '报告结束\n';
     report += '========================================\n';
@@ -101,7 +119,7 @@ export function RightPanel() {
         <h3 className="text-sm font-semibold text-content-secondary">分析结果</h3>
         <button
           onClick={exportReport}
-          disabled={!draftAngleResult && !wallThicknessResult && !drainHoleResult && !cycleResult}
+          disabled={!draftAngleResult && !wallThicknessResult && !drainHoleResult && !cycleResult && !sectionResult}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download size={14} />
@@ -468,6 +486,104 @@ export function RightPanel() {
                     ))}
                   </div>
                 </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-content-faint text-sm">
+                正在计算...
+              </div>
+            )}
+          </div>
+        )}
+
+        {analysisMode === 'section' && (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2">
+              <Scissors size={16} className="text-cyan-400" />
+              <h4 className="text-sm font-medium text-content-secondary">截面分析</h4>
+            </div>
+
+            {sectionResult ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">截面积</p>
+                    <p className="text-lg font-bold text-cyan-400 font-mono">
+                      {sectionResult.area.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-content-faint">mm²</p>
+                  </div>
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-content-muted mb-1">周长</p>
+                    <p className="text-lg font-bold text-purple-400 font-mono">
+                      {sectionResult.perimeter.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-content-faint">mm</p>
+                  </div>
+                </div>
+
+                <div className="bg-surface-elevated/30 rounded-lg p-3 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <div className="flex items-center gap-2">
+                      <Square size={12} className="text-cyan-400" />
+                      <span className="text-content-muted">截面轴向</span>
+                    </div>
+                    <span className="text-content-secondary font-mono">
+                      {sectionResult.plane.axis.toUpperCase()}轴
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-content-muted">截面位置</span>
+                    <span className="text-content-secondary font-mono">
+                      {sectionResult.plane.position.toFixed(2)} mm
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-content-muted">轮廓数量</span>
+                    <span className="text-content-secondary font-mono">
+                      {sectionResult.contourPoints.length}
+                    </span>
+                  </div>
+                </div>
+
+                {sectionResult.thicknessSamples.length > 0 && (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-surface-elevated/50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-content-muted mb-1">最薄</p>
+                        <p className="text-base font-bold text-red-400 font-mono">
+                          {sectionResult.minThickness.toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-content-faint">mm</p>
+                      </div>
+                      <div className="bg-surface-elevated/50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-content-muted mb-1">平均</p>
+                        <p className="text-base font-bold text-cyan-400 font-mono">
+                          {sectionResult.avgThickness.toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-content-faint">mm</p>
+                      </div>
+                      <div className="bg-surface-elevated/50 rounded-lg p-2 text-center">
+                        <p className="text-xs text-content-muted mb-1">最厚</p>
+                        <p className="text-base font-bold text-blue-400 font-mono">
+                          {sectionResult.maxThickness.toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-content-faint">mm</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-content-muted mb-2">壁厚分布</p>
+                      <ThicknessChart result={{
+                        samples: [],
+                        minThickness: sectionResult.minThickness,
+                        maxThickness: sectionResult.maxThickness,
+                        avgThickness: sectionResult.avgThickness,
+                        thicknessDistribution: sectionResult.thicknessDistribution,
+                        sampleCount: sectionResult.thicknessSamples.length,
+                      }} />
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <div className="text-center py-8 text-content-faint text-sm">

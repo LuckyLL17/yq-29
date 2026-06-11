@@ -9,6 +9,9 @@ import type {
   AnalysisMode,
   VisualizationMode,
   Vector3,
+  SectionPlane,
+  SectionResult,
+  SectionAxis,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -40,6 +43,10 @@ interface AppState {
   showAxes: boolean;
   autoRotate: boolean;
 
+  sectionPlane: SectionPlane;
+  sectionResult: SectionResult | null;
+  sectionThicknessResolution: number;
+
   setModel: (model: ModelData | null, fileName?: string) => void;
   setIsLoading: (loading: boolean) => void;
   setAnalysisMode: (mode: AnalysisMode) => void;
@@ -58,6 +65,13 @@ interface AppState {
 
   setCycleParameters: (params: Partial<MoldingCycleParameters>) => void;
   setCycleResult: (result: MoldingCycleResult | null) => void;
+
+  setSectionPlane: (plane: Partial<SectionPlane>) => void;
+  setSectionResult: (result: SectionResult | null) => void;
+  setSectionAxis: (axis: SectionAxis) => void;
+  setSectionPosition: (position: number) => void;
+  setSectionThicknessResolution: (resolution: number) => void;
+  toggleSectionVisible: () => void;
 
   setShowGrid: (show: boolean) => void;
   setShowAxes: (show: boolean) => void;
@@ -103,8 +117,16 @@ export const useAppStore = create<AppState>((set) => ({
   isDarkMode: true,
   activeDialog: 'none',
 
+  sectionPlane: {
+    axis: 'y',
+    position: 0,
+    visible: false,
+  },
+  sectionResult: null,
+  sectionThicknessResolution: 50,
+
   setModel: (model, fileName = '') =>
-    set({ model, modelFileName: fileName, draftAngleResult: null, wallThicknessResult: null, drainHoleResult: null, cycleResult: null }),
+    set({ model, modelFileName: fileName, draftAngleResult: null, wallThicknessResult: null, drainHoleResult: null, cycleResult: null, sectionResult: null }),
   setIsLoading: (loading) => set({ isLoading: loading }),
   setAnalysisMode: (mode) => set({ analysisMode: mode }),
   setVisualizationMode: (mode) => set({ visualizationMode: mode }),
@@ -123,6 +145,20 @@ export const useAppStore = create<AppState>((set) => ({
   setCycleParameters: (params) =>
     set((state) => ({ cycleParameters: { ...state.cycleParameters, ...params } })),
   setCycleResult: (result) => set({ cycleResult: result }),
+
+  setSectionPlane: (plane) =>
+    set((state) => ({ sectionPlane: { ...state.sectionPlane, ...plane } })),
+  setSectionResult: (result) => set({ sectionResult: result }),
+  setSectionAxis: (axis) =>
+    set((state) => ({ sectionPlane: { ...state.sectionPlane, axis } })),
+  setSectionPosition: (position) =>
+    set((state) => ({ sectionPlane: { ...state.sectionPlane, position } })),
+  setSectionThicknessResolution: (resolution) =>
+    set({ sectionThicknessResolution: resolution }),
+  toggleSectionVisible: () =>
+    set((state) => ({
+      sectionPlane: { ...state.sectionPlane, visible: !state.sectionPlane.visible },
+    })),
 
   setShowGrid: (show) => set({ showGrid: show }),
   setShowAxes: (show) => set({ showAxes: show }),
