@@ -93,9 +93,21 @@ function CompareScene() {
   const showAxes = useAppStore((state) => state.showAxes);
   const visualizationMode = useAppStore((state) => state.visualizationMode);
   const isDarkMode = useAppStore((state) => state.isDarkMode);
+  const layersEnabled = useAppStore((state) => state.layersEnabled);
+  const layerSplitStrategy = useAppStore((state) => state.layerSplitStrategy);
 
   const displayModel = model || createSampleBoxModel();
   const displayModel2 = model2 || createSampleBoxModel();
+
+  const model2Layers = useMemo(() => {
+    if (!layersEnabled) return [];
+    try {
+      return splitModel(displayModel2, layerSplitStrategy);
+    } catch (e) {
+      console.error('Failed to split model 2:', e);
+      return [];
+    }
+  }, [layersEnabled, displayModel2, layerSplitStrategy]);
 
   const offsetX = useMemo(() => {
     if (compareMode !== 'sidebyside') return 0;
@@ -109,38 +121,6 @@ function CompareScene() {
   const model1LabelY = displayModel.boundingBox.size.y / 2 + 15;
   const model2LabelY = displayModel2.boundingBox.size.y / 2 + 15;
 
-  const model1Material = useMemo(() => {
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(model1Color),
-      metalness: 0.2,
-      roughness: 0.5,
-      side: THREE.DoubleSide,
-      transparent: model1Opacity < 1,
-      opacity: model1Opacity,
-      depthWrite: model1Opacity >= 1,
-    });
-    if (visualizationMode === 'wireframe') {
-      mat.wireframe = true;
-    }
-    return mat;
-  }, [model1Color, model1Opacity, visualizationMode]);
-
-  const model2Material = useMemo(() => {
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(model2Color),
-      metalness: 0.2,
-      roughness: 0.5,
-      side: THREE.DoubleSide,
-      transparent: model2Opacity < 1,
-      opacity: model2Opacity,
-      depthWrite: model2Opacity >= 1,
-    });
-    if (visualizationMode === 'wireframe') {
-      mat.wireframe = true;
-    }
-    return mat;
-  }, [model2Color, model2Opacity, visualizationMode]);
-
   const model2DiffMaterial = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color(model2Color),
@@ -153,22 +133,6 @@ function CompareScene() {
       wireframe: visualizationMode === 'wireframe',
     });
   }, [model2Color, visualizationMode]);
-
-  const model1Geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(displayModel.vertices, 3));
-    geo.setIndex(new THREE.BufferAttribute(displayModel.indices, 1));
-    geo.computeVertexNormals();
-    return geo;
-  }, [displayModel]);
-
-  const model2Geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(displayModel2.vertices, 3));
-    geo.setIndex(new THREE.BufferAttribute(displayModel2.indices, 1));
-    geo.computeVertexNormals();
-    return geo;
-  }, [displayModel2]);
 
   const gridY = -Math.max(displayModel.boundingBox.size.y, displayModel2.boundingBox.size.y) / 2 - 1;
 
@@ -193,7 +157,14 @@ function CompareScene() {
         <group>
           <DiffModelMesh model={displayModel} diffResult={modelDiffResult} position={[-offsetX, 0, 0]} />
           {model2 && (
-            <mesh geometry={model2Geometry} material={model2DiffMaterial} position={[offsetX, 0, 0]} />
+            <LayeredModelMesh
+              model={displayModel2}
+              layers={model2Layers}
+              position={[offsetX, 0, 0]}
+              baseColor={model2Color}
+              baseOpacity={0.2}
+              enableAnalysisOverlay={false}
+            />
           )}
           <Html position={[-offsetX, model1LabelY, 0]} center distanceFactor={100} style={{ pointerEvents: 'none' }}>
             <div style={{
@@ -232,9 +203,22 @@ function CompareScene() {
         </group>
       ) : (
         <group>
-          <mesh geometry={model1Geometry} material={model1Material} position={[-offsetX, 0, 0]} castShadow receiveShadow />
+          <LayeredModelMesh
+            model={displayModel}
+            position={[-offsetX, 0, 0]}
+            baseColor={model1Color}
+            baseOpacity={model1Opacity}
+            enableAnalysisOverlay={false}
+          />
           {model2 && (
-            <mesh geometry={model2Geometry} material={model2Material} position={[offsetX, 0, 0]} castShadow receiveShadow />
+            <LayeredModelMesh
+              model={displayModel2}
+              layers={model2Layers}
+              position={[offsetX, 0, 0]}
+              baseColor={model2Color}
+              baseOpacity={model2Opacity}
+              enableAnalysisOverlay={false}
+            />
           )}
           <Html position={[-offsetX, model1LabelY, 0]} center distanceFactor={100} style={{ pointerEvents: 'none' }}>
             <div style={{

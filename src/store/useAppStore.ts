@@ -256,24 +256,20 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (model) {
         const strategy = get().layerSplitStrategy;
         const layers = get().modelLayers;
-        const axis = strategy.axis;
+        const axis = strategy.type === 'axis' ? strategy.axis : 'y';
         const center = model.boundingBox.center;
+        const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
         set({
           modelLayers: layers.map((layer) => {
             const layerCenter = layer.boundingBox.center;
-            const dir = {
-              x: layerCenter.x - center.x,
-              y: layerCenter.y - center.y,
-              z: layerCenter.z - center.z,
-            };
-            const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1;
-            const norm = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
-            const offsetAxis = {
-              x: axis === 'x' ? norm.x * amount : 0,
-              y: axis === 'y' ? norm.y * amount : 0,
-              z: axis === 'z' ? norm.z * amount : 0,
-            };
-            return { ...layer, explosionOffset: offsetAxis };
+            const centerArr = [center.x, center.y, center.z];
+            const layerCenterArr = [layerCenter.x, layerCenter.y, layerCenter.z];
+            const delta = layerCenterArr[axisIdx] - centerArr[axisIdx];
+            const offset = { x: 0, y: 0, z: 0 };
+            if (axis === 'x') offset.x = delta > 0 ? amount : delta < 0 ? -amount : 0;
+            else if (axis === 'y') offset.y = delta > 0 ? amount : delta < 0 ? -amount : 0;
+            else offset.z = delta > 0 ? amount : delta < 0 ? -amount : 0;
+            return { ...layer, explosionOffset: offset };
           }),
         });
       }
@@ -285,25 +281,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     const strategy = get().layerSplitStrategy;
     const layers = get().modelLayers;
     if (exploded && model) {
-      const axis = strategy.axis;
+      const axis = strategy.type === 'axis' ? strategy.axis : 'y';
       const center = model.boundingBox.center;
+      const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
       set({
         isLayerExploded: true,
         modelLayers: layers.map((layer) => {
           const layerCenter = layer.boundingBox.center;
-          const dir = {
-            x: layerCenter.x - center.x,
-            y: layerCenter.y - center.y,
-            z: layerCenter.z - center.z,
-          };
-          const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1;
-          const norm = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
-          const offsetAxis = {
-            x: axis === 'x' ? norm.x * amount : 0,
-            y: axis === 'y' ? norm.y * amount : 0,
-            z: axis === 'z' ? norm.z * amount : 0,
-          };
-          return { ...layer, explosionOffset: offsetAxis };
+          const centerArr = [center.x, center.y, center.z];
+          const layerCenterArr = [layerCenter.x, layerCenter.y, layerCenter.z];
+          const delta = layerCenterArr[axisIdx] - centerArr[axisIdx];
+          const offset = { x: 0, y: 0, z: 0 };
+          if (axis === 'x') offset.x = delta > 0 ? amount : delta < 0 ? -amount : 0;
+          else if (axis === 'y') offset.y = delta > 0 ? amount : delta < 0 ? -amount : 0;
+          else offset.z = delta > 0 ? amount : delta < 0 ? -amount : 0;
+          return { ...layer, explosionOffset: offset };
         }),
       });
     } else {
@@ -350,26 +342,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     const amount = get().layerExplosionAmount;
     const model = get().model;
     const layers = get().modelLayers;
+    const currentStrategy = get().layerSplitStrategy;
     if (model && layers.length > 0) {
       const center = model.boundingBox.center;
+      const axisIdx = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
       set({
         isLayerExploded: true,
-        layerSplitStrategy: { ...get().layerSplitStrategy, axis },
+        layerSplitStrategy: { type: 'axis', axis, count: currentStrategy.type === 'axis' ? currentStrategy.count : 4 },
         modelLayers: layers.map((layer) => {
           const layerCenter = layer.boundingBox.center;
-          const dir = {
-            x: layerCenter.x - center.x,
-            y: layerCenter.y - center.y,
-            z: layerCenter.z - center.z,
-          };
-          const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1;
-          const norm = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
-          const offsetAxis = {
-            x: axis === 'x' ? norm.x * amount : 0,
-            y: axis === 'y' ? norm.y * amount : 0,
-            z: axis === 'z' ? norm.z * amount : 0,
-          };
-          return { ...layer, explosionOffset: offsetAxis };
+          const centerArr = [center.x, center.y, center.z];
+          const layerCenterArr = [layerCenter.x, layerCenter.y, layerCenter.z];
+          const delta = layerCenterArr[axisIdx] - centerArr[axisIdx];
+          const offset = { x: 0, y: 0, z: 0 };
+          if (axis === 'x') offset.x = delta > 0 ? amount : delta < 0 ? -amount : 0;
+          else if (axis === 'y') offset.y = delta > 0 ? amount : delta < 0 ? -amount : 0;
+          else offset.z = delta > 0 ? amount : delta < 0 ? -amount : 0;
+          return { ...layer, explosionOffset: offset };
         }),
       });
     }

@@ -10,16 +10,26 @@ interface LayeredModelMeshProps {
     vertices: Float32Array;
     indices: Uint32Array | Uint16Array;
     normals: Float32Array;
-    boundingBox?: THREE.Box3;
   };
+  layers?: ModelLayer[];
+  baseColor?: string;
+  baseOpacity?: number;
+  position?: [number, number, number];
+  enableAnalysisOverlay?: boolean;
 }
 
 function LayerMesh({
   layer,
   clippingPlanes,
+  baseColor,
+  baseOpacity,
+  enableAnalysisOverlay,
 }: {
   layer: ModelLayer;
   clippingPlanes: THREE.Plane[];
+  baseColor?: string;
+  baseOpacity?: number;
+  enableAnalysisOverlay?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -39,20 +49,23 @@ function LayerMesh({
     return geo;
   }, [layer.geometry.vertices, layer.geometry.indices, layer.geometry.normals]);
 
+  const finalColor = baseColor || layer.color;
+  const finalOpacity = baseOpacity !== undefined ? baseOpacity : layer.opacity;
+
   const material = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(layer.color),
+      color: new THREE.Color(finalColor),
       metalness: 0.2,
       roughness: 0.5,
       side: THREE.DoubleSide,
-      transparent: layer.opacity < 1,
-      opacity: layer.opacity,
-      depthWrite: layer.opacity >= 0.99,
+      transparent: finalOpacity < 1,
+      opacity: finalOpacity,
+      depthWrite: finalOpacity >= 0.99,
       clippingPlanes: clippingPlanes,
       clipShadows: true,
     });
 
-    if (analysisMode === 'draft' && draftAngleResult) {
+    if (enableAnalysisOverlay !== false && analysisMode === 'draft' && draftAngleResult) {
       const colors = createDraftAngleVertexColors(
         { vertices: layer.geometry.vertices, indices: layer.geometry.indices } as any,
         draftAngleResult
@@ -61,7 +74,7 @@ function LayerMesh({
       mat.vertexColors = true;
       mat.metalness = 0.1;
       mat.roughness = 0.7;
-    } else if (analysisMode === 'thickness' && wallThicknessResult) {
+    } else if (enableAnalysisOverlay !== false && analysisMode === 'thickness' && wallThicknessResult) {
       mat.color = new THREE.Color(0x4a90d9);
       mat.metalness = 0.1;
       mat.roughness = 0.7;
@@ -78,8 +91,8 @@ function LayerMesh({
 
     return mat;
   }, [
-    layer.color,
-    layer.opacity,
+    finalColor,
+    finalOpacity,
     analysisMode,
     visualizationMode,
     draftAngleResult,
@@ -87,6 +100,7 @@ function LayerMesh({
     geometry,
     layer.geometry,
     clippingPlanes,
+    enableAnalysisOverlay,
   ]);
 
   useEffect(() => {
@@ -123,10 +137,21 @@ function LayerMesh({
   );
 }
 
-export function LayeredModelMesh({ model }: LayeredModelMeshProps) {
-  const layers = useAppStore((state) => state.modelLayers);
+export function LayeredModelMesh({
+  model,
+  layers: externalLayers,
+  baseColor,
+  baseOpacity,
+  position = [0, 0, 0],
+  enableAnalysisOverlay = true,
+}: LayeredModelMeshProps) {
+  const storeLayers = useAppStore((state) => state.modelLayers);
   const sectionPlane = useAppStore((state) => state.sectionPlane);
   const analysisMode = useAppStore((state) => state.analysisMode);
+  const layersEnabled = useAppStore((state) => state.layersEnabled);
+
+  const layers = externalLayers || storeLayers;
+  const shouldUseLayers = layersEnabled && layers.length > 0;
 
   const clippingPlanes = useMemo(() => {
     if (analysisMode !== 'section' || !sectionPlane.visible) {
@@ -151,16 +176,30 @@ export function LayeredModelMesh({ model }: LayeredModelMeshProps) {
     return [new THREE.Plane(normal, -sectionPlane.position)];
   }, [analysisMode, sectionPlane.axis, sectionPlane.position, sectionPlane.visible]);
 
-  if (layers.length === 0) {
+  if (!shouldUseLayers) {
     return (
-      <FallbackModelMesh model={model} clippingPlanes={clippingPlanes} />
+      <FallbackModelMesh
+        model={model}
+        clippingPlanes={clippingPlanes}
+        baseColor={baseColor}
+        baseOpacity={baseOpacity}
+        position={position}
+        enableAnalysisOverlay={enableAnalysisOverlay}
+      />
     );
   }
 
   return (
-    <group>
+    <group position={position}>
       {layers.map((layer) => (
-        <LayerMesh key={layer.id} layer={layer} clippingPlanes={clippingPlanes} />
+        <LayerMesh
+          key={layer.id}
+          layer={layer}
+          clippingPlanes={clippingPlanes}
+          baseColor={baseColor}
+          baseOpacity={baseOpacity}
+          enableAnalysisOverlay={enableAnalysisOverlay}
+        />
       ))}
     </group>
   );
@@ -169,9 +208,17 @@ export function LayeredModelMesh({ model }: LayeredModelMeshProps) {
 function FallbackModelMesh({
   model,
   clippingPlanes,
+  baseColor,
+  baseOpacity,
+  position = [0, 0, 0],
+  enableAnalysisOverlay = true,
 }: {
   model: LayeredModelMeshProps['model'];
   clippingPlanes: THREE.Plane[];
+  baseColor?: string;
+  baseOpacity?: number;
+  position?: [number, number, number];
+  enableAnalysisOverlay?: boolean;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const analysisMode = useAppStore((state) => state.analysisMode);
@@ -179,6 +226,9 @@ function FallbackModelMesh({
   const draftAngleResult = useAppStore((state) => state.draftAngleResult);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
   const autoRotate = useAppStore((state) => state.autoRotate);
+
+  const finalColor = baseColor || '#6b8e9e';
+  const finalOpacity = baseOpacity !== undefined ? baseOpacity : 1;
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
@@ -190,15 +240,18 @@ function FallbackModelMesh({
 
   const material = useMemo(() => {
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x6b8e9e,
+      color: new THREE.Color(finalColor),
       metalness: 0.2,
       roughness: 0.5,
       side: THREE.DoubleSide,
+      transparent: finalOpacity < 1,
+      opacity: finalOpacity,
+      depthWrite: finalOpacity >= 0.99,
       clippingPlanes: clippingPlanes,
       clipShadows: true,
     });
 
-    if (analysisMode === 'draft' && draftAngleResult) {
+    if (enableAnalysisOverlay !== false && analysisMode === 'draft' && draftAngleResult) {
       const colors = createDraftAngleVertexColors(
         { vertices: model.vertices, indices: model.indices } as any,
         draftAngleResult
@@ -207,23 +260,34 @@ function FallbackModelMesh({
       mat.vertexColors = true;
       mat.metalness = 0.1;
       mat.roughness = 0.7;
-    } else if (analysisMode === 'thickness' && wallThicknessResult) {
+    } else if (enableAnalysisOverlay !== false && analysisMode === 'thickness' && wallThicknessResult) {
       mat.color = new THREE.Color(0x4a90d9);
       mat.metalness = 0.1;
       mat.roughness = 0.7;
       mat.transparent = true;
-      mat.opacity = 0.85;
+      mat.opacity = Math.min(mat.opacity, 0.85);
     }
 
     if (visualizationMode === 'wireframe') {
       mat.wireframe = true;
     } else if (visualizationMode === 'xray') {
       mat.transparent = true;
-      mat.opacity = 0.3;
+      mat.opacity = Math.min(mat.opacity, 0.3);
     }
 
     return mat;
-  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model, clippingPlanes]);
+  }, [
+    finalColor,
+    finalOpacity,
+    analysisMode,
+    visualizationMode,
+    draftAngleResult,
+    wallThicknessResult,
+    geometry,
+    model,
+    clippingPlanes,
+    enableAnalysisOverlay,
+  ]);
 
   useEffect(() => {
     if (material) {
@@ -239,6 +303,13 @@ function FallbackModelMesh({
   });
 
   return (
-    <mesh ref={meshRef} geometry={geometry} material={material} castShadow receiveShadow />
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      material={material}
+      position={position}
+      castShadow
+      receiveShadow
+    />
   );
 }
