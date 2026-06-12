@@ -28,7 +28,7 @@ import { computeSection, getPlaneBounds } from '@/utils/section';
 import { computeModelDiff } from '@/utils/modelDiff';
 import { splitModel } from '@/utils/layerSplitter';
 import { AnnotationPanel } from './AnnotationPanel';
-import type { AnalysisMode, VisualizationMode, SectionAxis, CompareMode, LayerSplitAxis } from '@/types';
+import type { AnalysisMode, VisualizationMode, SectionAxis, CompareMode, LayerSplitAxis, LayerSplitStrategy } from '@/types';
 
 const tools = [
   { id: 'draft', label: '脱模角度', icon: MoveUp },
@@ -875,10 +875,11 @@ export function LeftToolbar() {
                     <button
                       key={axis}
                       onClick={() => {
-                        const newStrategy = {
-                          ...layerSplitStrategy,
-                          type: 'axis' as const,
+                        const currentCount = layerSplitStrategy.type === 'axis' ? layerSplitStrategy.count : 4;
+                        const newStrategy: LayerSplitStrategy = {
+                          type: 'axis',
                           axis,
+                          count: currentCount,
                         };
                         setLayerSplitStrategy(newStrategy);
                         const displayModel = model || createSampleBoxModel();
@@ -916,9 +917,10 @@ export function LeftToolbar() {
                     <button
                       key={n}
                       onClick={() => {
-                        const newStrategy = {
-                          ...layerSplitStrategy,
-                          type: 'axis' as const,
+                        const currentAxis = layerSplitStrategy.type === 'axis' ? layerSplitStrategy.axis : 'y';
+                        const newStrategy: LayerSplitStrategy = {
+                          type: 'axis',
+                          axis: currentAxis,
                           count: n,
                         };
                         setLayerSplitStrategy(newStrategy);

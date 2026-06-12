@@ -227,22 +227,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateLayer: (id, updates) =>
     set((state) => ({
       modelLayers: state.modelLayers.map((layer) =>
-        layer.id === id ? { ...layer, ...updates } : layer,
+        layer.id === id ? { ...layer, ...updates } : layer
+      ),
     })),
   setLayerVisibility: (id, visible) =>
     set((state) => ({
       modelLayers: state.modelLayers.map((layer) =>
-        layer.id === id ? { ...layer, visible } : layer,
+        layer.id === id ? { ...layer, visible } : layer
+      ),
     })),
   setLayerOpacity: (id, opacity) =>
     set((state) => ({
       modelLayers: state.modelLayers.map((layer) =>
-        layer.id === id ? { ...layer, opacity } : layer,
+        layer.id === id ? { ...layer, opacity } : layer
+      ),
     })),
   setLayerColor: (id, color) =>
     set((state) => ({
       modelLayers: state.modelLayers.map((layer) =>
-        layer.id === id ? { ...layer, color } : layer,
+        layer.id === id ? { ...layer, color } : layer
+      ),
     })),
   setLayerExplosionAmount: (amount) => {
     set({ layerExplosionAmount: amount });
@@ -315,7 +319,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   toggleLayerVisibility: (id) =>
     set((state) => ({
       modelLayers: state.modelLayers.map((layer) =>
-        layer.id === id ? { ...layer, visible: !layer.visible } : layer,
+        layer.id === id ? { ...layer, visible: !layer.visible } : layer
+      ),
     })),
   showAllLayers: () =>
     set((state) => ({
