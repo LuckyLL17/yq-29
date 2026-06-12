@@ -296,7 +296,7 @@ export function LeftToolbar() {
         </div>
       </div>
 
-      <div className="p-4 border-b border-edge-subtle">
+      <div className="p-4">
         <h3 className="text-sm font-semibold text-content-secondary mb-3">分析工具</h3>
         <div className="grid grid-cols-2 gap-2">
           {tools.map((tool) => {
@@ -320,494 +320,494 @@ export function LeftToolbar() {
         </div>
       </div>
 
-      {analysisMode === 'draft' && (
-        <div className="p-4 border-b border-edge-subtle">
-          <h3 className="text-sm font-semibold text-content-secondary mb-3">脱模角度设置</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                最小脱模角: {draftAngleThreshold}°
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="15"
-                step="0.5"
-                value={draftAngleThreshold}
-                onChange={(e) => setDraftAngleThreshold(parseFloat(e.target.value))}
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-content-muted block mb-1">脱模方向</label>
-              <div className="flex gap-2">
-                {[
-                  { label: '+Y', dir: { x: 0, y: 1, z: 0 } },
-                  { label: '-Y', dir: { x: 0, y: -1, z: 0 } },
-                  { label: '+Z', dir: { x: 0, y: 0, z: 1 } },
-                  { label: '-Z', dir: { x: 0, y: 0, z: -1 } },
-                ].map((opt) => (
-                  <button
-                    key={opt.label}
-                    onClick={() => setDraftDirection(opt.dir)}
-                    className={`flex-1 py-1.5 text-xs rounded transition-colors ${
-                      draftDirection.y === opt.dir.y &&
-                      draftDirection.z === opt.dir.z &&
-                      draftDirection.x === opt.dir.x
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-surface-active text-content-secondary hover:bg-surface-inset'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button
-              onClick={() => runAnalysis('draft')}
-              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
-            >
-              重新计算
-            </button>
-          </div>
-        </div>
-      )}
-
-      {analysisMode === 'thickness' && (
-        <div className="p-4 border-b border-edge-subtle">
-          <h3 className="text-sm font-semibold text-content-secondary mb-3">壁厚分析设置</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                采样点数: {thicknessSampleCount}
-              </label>
-              <input
-                type="range"
-                min="100"
-                max="2000"
-                step="100"
-                value={thicknessSampleCount}
-                onChange={(e) => setThicknessSampleCount(parseInt(e.target.value))}
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-            <button
-              onClick={() => runAnalysis('thickness')}
-              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
-            >
-              重新计算
-            </button>
-          </div>
-        </div>
-      )}
-
-      {analysisMode === 'holes' && (
-        <div className="p-4 border-b border-edge-subtle">
-          <h3 className="text-sm font-semibold text-content-secondary mb-3">滤水孔设置</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                孔径: {holeDiameter}mm
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="8"
-                step="0.5"
-                value={holeDiameter}
-                onChange={(e) => setHoleDiameter(parseFloat(e.target.value))}
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                孔间距: {holeSpacing}mm
-              </label>
-              <input
-                type="range"
-                min="5"
-                max="40"
-                step="1"
-                value={holeSpacing}
-                onChange={(e) => setHoleSpacing(parseInt(e.target.value))}
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-            <button
-              onClick={() => runAnalysis('holes')}
-              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
-            >
-              重新计算
-            </button>
-          </div>
-        </div>
-      )}
-
-      {analysisMode === 'cycle' && (
-        <div className="p-4 border-b border-edge-subtle">
-          <h3 className="text-sm font-semibold text-content-secondary mb-3">工艺参数</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-content-muted block mb-1">材料类型</label>
-              <select
-                value={cycleParameters.materialType}
-                onChange={(e) => setCycleParameters({ materialType: e.target.value })}
-                className="w-full px-3 py-2 bg-surface-input border border-edge-base rounded-lg text-sm text-content-secondary focus:outline-none focus:border-cyan-500"
-              >
-                {MATERIAL_OPTIONS.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                目标壁厚: {cycleParameters.targetThickness}mm
-              </label>
-              <input
-                type="range"
-                min="0.5"
-                max="5"
-                step="0.1"
-                value={cycleParameters.targetThickness}
-                onChange={(e) =>
-                  setCycleParameters({ targetThickness: parseFloat(e.target.value) })
-                }
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                成型温度: {cycleParameters.temperature}°C
-              </label>
-              <input
-                type="range"
-                min="120"
-                max="250"
-                step="5"
-                value={cycleParameters.temperature}
-                onChange={(e) =>
-                  setCycleParameters({ temperature: parseInt(e.target.value) })
-                }
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                成型压力: {cycleParameters.pressure}MPa
-              </label>
-              <input
-                type="range"
-                min="0.2"
-                max="1.5"
-                step="0.1"
-                value={cycleParameters.pressure}
-                onChange={(e) =>
-                  setCycleParameters({ pressure: parseFloat(e.target.value) })
-                }
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-            <button
-              onClick={() => runAnalysis('cycle')}
-              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
-            >
-              重新计算
-            </button>
-          </div>
-        </div>
-      )}
-
-      {analysisMode === 'section' && (
-        <div className="p-4 border-b border-edge-subtle">
-          <h3 className="text-sm font-semibold text-content-secondary mb-3">截面分析设置</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-content-muted block mb-1">截面轴向</label>
-              <div className="flex gap-2">
-                {[
-                  { label: 'X轴', axis: 'x' },
-                  { label: 'Y轴', axis: 'y' },
-                  { label: 'Z轴', axis: 'z' },
-                ].map((opt) => (
-                  <button
-                    key={opt.axis}
-                    onClick={() => {
-                      setSectionAxis(opt.axis as SectionAxis);
-                      if (model) {
-                        const bounds = getPlaneBounds(model, opt.axis);
-                        const centerPos = (bounds.min + bounds.max) / 2;
-                        setSectionPosition(centerPos);
-                      }
-                    }}
-                    className={`flex-1 py-1.5 text-xs rounded transition-colors ${
-                      sectionPlane.axis === opt.axis
-                        ? 'bg-cyan-600 text-white'
-                        : 'bg-surface-active text-content-secondary hover:bg-surface-inset'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                截面位置: {sectionPlane.position.toFixed(2)} mm
-              </label>
-              <input
-                type="range"
-                min={model ? getPlaneBounds(model, sectionPlane.axis).min : -100}
-                max={model ? getPlaneBounds(model, sectionPlane.axis).max : 100}
-                step={0.1}
-                value={sectionPlane.position}
-                onChange={(e) => {
-                  const pos = parseFloat(e.target.value);
-                  setSectionPosition(pos);
-                }}
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-xs text-content-muted">精确输入:</span>
+      <div className="p-4 flex-1 overflow-y-auto">
+        {analysisMode === 'draft' && (
+          <div className="pb-4 mb-4 border-b border-edge-subtle">
+            <h3 className="text-sm font-semibold text-content-secondary mb-3">脱模角度设置</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  最小脱模角: {draftAngleThreshold}°
+                </label>
                 <input
-                  type="number"
-                  value={sectionPlane.position.toFixed(2)}
+                  type="range"
+                  min="1"
+                  max="15"
+                  step="0.5"
+                  value={draftAngleThreshold}
+                  onChange={(e) => setDraftAngleThreshold(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-content-muted block mb-1">脱模方向</label>
+                <div className="flex gap-2">
+                  {[
+                    { label: '+Y', dir: { x: 0, y: 1, z: 0 } },
+                    { label: '-Y', dir: { x: 0, y: -1, z: 0 } },
+                    { label: '+Z', dir: { x: 0, y: 0, z: 1 } },
+                    { label: '-Z', dir: { x: 0, y: 0, z: -1 } },
+                  ].map((opt) => (
+                    <button
+                      key={opt.label}
+                      onClick={() => setDraftDirection(opt.dir)}
+                      className={`flex-1 py-1.5 text-xs rounded transition-colors ${
+                        draftDirection.y === opt.dir.y &&
+                        draftDirection.z === opt.dir.z &&
+                        draftDirection.x === opt.dir.x
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-surface-active text-content-secondary hover:bg-surface-inset'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                onClick={() => runAnalysis('draft')}
+                className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+              >
+                重新计算
+              </button>
+            </div>
+          </div>
+        )}
+
+        {analysisMode === 'thickness' && (
+          <div className="pb-4 mb-4 border-b border-edge-subtle">
+            <h3 className="text-sm font-semibold text-content-secondary mb-3">壁厚分析设置</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  采样点数: {thicknessSampleCount}
+                </label>
+                <input
+                  type="range"
+                  min="100"
+                  max="2000"
+                  step="100"
+                  value={thicknessSampleCount}
+                  onChange={(e) => setThicknessSampleCount(parseInt(e.target.value))}
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+              <button
+                onClick={() => runAnalysis('thickness')}
+                className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+              >
+                重新计算
+              </button>
+            </div>
+          </div>
+        )}
+
+        {analysisMode === 'holes' && (
+          <div className="pb-4 mb-4 border-b border-edge-subtle">
+            <h3 className="text-sm font-semibold text-content-secondary mb-3">滤水孔设置</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  孔径: {holeDiameter}mm
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="8"
+                  step="0.5"
+                  value={holeDiameter}
+                  onChange={(e) => setHoleDiameter(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  孔间距: {holeSpacing}mm
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="40"
+                  step="1"
+                  value={holeSpacing}
+                  onChange={(e) => setHoleSpacing(parseInt(e.target.value))}
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+              <button
+                onClick={() => runAnalysis('holes')}
+                className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+              >
+                重新计算
+              </button>
+            </div>
+          </div>
+        )}
+
+        {analysisMode === 'cycle' && (
+          <div className="pb-4 mb-4 border-b border-edge-subtle">
+            <h3 className="text-sm font-semibold text-content-secondary mb-3">工艺参数</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-content-muted block mb-1">材料类型</label>
+                <select
+                  value={cycleParameters.materialType}
+                  onChange={(e) => setCycleParameters({ materialType: e.target.value })}
+                  className="w-full px-3 py-2 bg-surface-input border border-edge-base rounded-lg text-sm text-content-secondary focus:outline-none focus:border-cyan-500"
+                >
+                  {MATERIAL_OPTIONS.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  目标壁厚: {cycleParameters.targetThickness}mm
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="5"
+                  step="0.1"
+                  value={cycleParameters.targetThickness}
+                  onChange={(e) =>
+                    setCycleParameters({ targetThickness: parseFloat(e.target.value) })
+                  }
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  成型温度: {cycleParameters.temperature}°C
+                </label>
+                <input
+                  type="range"
+                  min="120"
+                  max="250"
+                  step="5"
+                  value={cycleParameters.temperature}
+                  onChange={(e) =>
+                    setCycleParameters({ temperature: parseInt(e.target.value) })
+                  }
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  成型压力: {cycleParameters.pressure}MPa
+                </label>
+                <input
+                  type="range"
+                  min="0.2"
+                  max="1.5"
+                  step="0.1"
+                  value={cycleParameters.pressure}
+                  onChange={(e) =>
+                    setCycleParameters({ pressure: parseFloat(e.target.value) })
+                  }
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+              <button
+                onClick={() => runAnalysis('cycle')}
+                className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+              >
+                重新计算
+              </button>
+            </div>
+          </div>
+        )}
+
+        {analysisMode === 'section' && (
+          <div className="pb-4 mb-4 border-b border-edge-subtle">
+            <h3 className="text-sm font-semibold text-content-secondary mb-3">截面分析设置</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-content-muted block mb-1">截面轴向</label>
+                <div className="flex gap-2">
+                  {[
+                    { label: 'X轴', axis: 'x' },
+                    { label: 'Y轴', axis: 'y' },
+                    { label: 'Z轴', axis: 'z' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.axis}
+                      onClick={() => {
+                        setSectionAxis(opt.axis as SectionAxis);
+                        if (model) {
+                          const bounds = getPlaneBounds(model, opt.axis);
+                          const centerPos = (bounds.min + bounds.max) / 2;
+                          setSectionPosition(centerPos);
+                        }
+                      }}
+                      className={`flex-1 py-1.5 text-xs rounded transition-colors ${
+                        sectionPlane.axis === opt.axis
+                          ? 'bg-cyan-600 text-white'
+                          : 'bg-surface-active text-content-secondary hover:bg-surface-inset'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  截面位置: {sectionPlane.position.toFixed(2)} mm
+                </label>
+                <input
+                  type="range"
                   min={model ? getPlaneBounds(model, sectionPlane.axis).min : -100}
                   max={model ? getPlaneBounds(model, sectionPlane.axis).max : 100}
                   step={0.1}
+                  value={sectionPlane.position}
                   onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val)) {
-                      const bounds = model ? getPlaneBounds(model, sectionPlane.axis) : { min: -100, max: 100 };
-                      const clamped = Math.max(bounds.min, Math.min(bounds.max, val));
-                      setSectionPosition(clamped);
+                    const pos = parseFloat(e.target.value);
+                    setSectionPosition(pos);
+                  }}
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-content-muted">精确输入:</span>
+                  <input
+                    type="number"
+                    value={sectionPlane.position.toFixed(2)}
+                    min={model ? getPlaneBounds(model, sectionPlane.axis).min : -100}
+                    max={model ? getPlaneBounds(model, sectionPlane.axis).max : 100}
+                    step={0.1}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      if (!isNaN(val)) {
+                        const bounds = model ? getPlaneBounds(model, sectionPlane.axis) : { min: -100, max: 100 };
+                        const clamped = Math.max(bounds.min, Math.min(bounds.max, val));
+                        setSectionPosition(clamped);
+                      }
+                    }}
+                    className="flex-1 px-2 py-1 bg-surface-input border border-edge-base rounded text-xs text-content-secondary font-mono focus:outline-none focus:border-cyan-500"
+                  />
+                  <span className="text-xs text-content-faint">mm</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-content-muted block mb-1">
+                  壁厚采样数: {sectionThicknessResolution}
+                </label>
+                <input
+                  type="range"
+                  min="10"
+                  max="200"
+                  step="10"
+                  value={sectionThicknessResolution}
+                  onChange={(e) => setSectionThicknessResolution(parseInt(e.target.value))}
+                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    toggleSectionVisible();
+                    if (!sectionPlane.visible && model) {
+                      const result = computeSection(
+                        model,
+                        sectionPlane,
+                        sectionThicknessResolution
+                      );
+                      setSectionResult(result);
                     }
                   }}
-                  className="flex-1 px-2 py-1 bg-surface-input border border-edge-base rounded text-xs text-content-secondary font-mono focus:outline-none focus:border-cyan-500"
-                />
-                <span className="text-xs text-content-faint">mm</span>
+                  className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
+                    sectionPlane.visible
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-surface-elevated text-content-secondary hover:bg-surface-hover border border-edge-subtle'
+                  }`}
+                >
+                  {sectionPlane.visible ? '隐藏截面' : '显示截面'}
+                </button>
               </div>
-            </div>
 
-            <div>
-              <label className="text-xs text-content-muted block mb-1">
-                壁厚采样数: {sectionThicknessResolution}
-              </label>
-              <input
-                type="range"
-                min="10"
-                max="200"
-                step="10"
-                value={sectionThicknessResolution}
-                onChange={(e) => setSectionThicknessResolution(parseInt(e.target.value))}
-                className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-              />
-            </div>
-
-            <div className="flex gap-2">
               <button
                 onClick={() => {
-                  toggleSectionVisible();
-                  if (!sectionPlane.visible && model) {
-                    const result = computeSection(
-                      model,
-                      sectionPlane,
-                      sectionThicknessResolution
-                    );
-                    setSectionResult(result);
+                  if (model) {
+                    setIsLoading(true);
+                    setTimeout(() => {
+                      const result = computeSection(
+                        model,
+                        sectionPlane,
+                        sectionThicknessResolution
+                      );
+                      setSectionResult(result);
+                      setIsLoading(false);
+                    }, 50);
                   }
                 }}
-                className={`flex-1 py-2 text-sm rounded-lg transition-colors ${
-                  sectionPlane.visible
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-surface-elevated text-content-secondary hover:bg-surface-hover border border-edge-subtle'
-                }`}
-              >
-                {sectionPlane.visible ? '隐藏截面' : '显示截面'}
-              </button>
-            </div>
-
-            <button
-              onClick={() => {
-                if (model) {
-                  setIsLoading(true);
-                  setTimeout(() => {
-                    const result = computeSection(
-                      model,
-                      sectionPlane,
-                      sectionThicknessResolution
-                    );
-                    setSectionResult(result);
-                    setIsLoading(false);
-                  }, 50);
-                }
-              }}
-              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
-            >
-              重新计算
-            </button>
-          </div>
-        </div>
-      )}
-
-      {analysisMode === 'compare' && (
-        <div className="p-4 border-b border-edge-subtle">
-          <h3 className="text-sm font-semibold text-content-secondary mb-3">对比模式</h3>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-content-muted block mb-2">显示方式</label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'overlay', label: '叠加' },
-                  { id: 'sidebyside', label: '并排' },
-                  { id: 'diffcolormap', label: '差异色' },
-                ].map((mode) => {
-                  const isActive = compareMode === mode.id;
-                  return (
-                    <button
-                      key={mode.id}
-                      onClick={() => {
-                        setCompareMode(mode.id as CompareMode);
-                        if (mode.id === 'diffcolormap' && model && model2) {
-                          setIsLoading(true);
-                          setTimeout(() => {
-                            try {
-                              const result = computeModelDiff(model, model2);
-                              setModelDiffResult(result);
-                            } catch (error) {
-                              console.error('差异计算失败:', error);
-                              alert('差异计算失败，请重试');
-                            } finally {
-                              setIsLoading(false);
-                            }
-                          }, 100);
-                        } else {
-                          setModelDiffResult(null);
-                        }
-                      }}
-                      className={`py-2 text-xs rounded-lg transition-colors ${
-                        isActive
-                          ? 'bg-cyan-600 text-white'
-                          : 'bg-surface-elevated text-content-secondary hover:bg-surface-hover border border-edge-subtle'
-                      }`}
-                    >
-                      {mode.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {compareMode !== 'diffcolormap' && (
-              <>
-                <div className="pt-2 border-t border-edge-subtle">
-                  <label className="text-xs text-content-muted block mb-2">
-                    模型颜色
-                  </label>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: model1Color }} />
-                        <span className="text-xs text-content-muted">模型1</span>
-                      </div>
-                      <input
-                        type="color"
-                        value={model1Color}
-                        onChange={(e) => setModel1Color(e.target.value)}
-                        className="w-full h-8 rounded cursor-pointer bg-transparent"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: model2Color }} />
-                        <span className="text-xs text-content-muted">模型2</span>
-                      </div>
-                      <input
-                        type="color"
-                        value={model2Color}
-                        onChange={(e) => setModel2Color(e.target.value)}
-                        className="w-full h-8 rounded cursor-pointer bg-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs text-content-muted block mb-1">
-                    模型1透明度: {model1Opacity.toFixed(2)}
-                  </label>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="1"
-                    step="0.05"
-                    value={model1Opacity}
-                    onChange={(e) => setModel1Opacity(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs text-content-muted block mb-1">
-                    模型2透明度: {model2Opacity.toFixed(2)}
-                  </label>
-                  <input
-                    type="range"
-                    min="0.1"
-                    max="1"
-                    step="0.05"
-                    value={model2Opacity}
-                    onChange={(e) => setModel2Opacity(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-                  />
-                </div>
-              </>
-            )}
-
-            {compareMode === 'diffcolormap' && modelDiffResult && (
-              <div className="pt-2 border-t border-edge-subtle space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-content-muted">最大凸出</span>
-                  <span className="text-red-400 font-mono">{modelDiffResult.maxDistance.toFixed(2)} mm</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-content-muted">最大凹陷</span>
-                  <span className="text-blue-400 font-mono">{modelDiffResult.minDistance.toFixed(2)} mm</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-content-muted">平均差异</span>
-                  <span className="text-content-secondary font-mono">{modelDiffResult.avgDistance.toFixed(2)} mm</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-content-muted">凸出顶点数</span>
-                  <span className="text-content-secondary font-mono">{modelDiffResult.positiveCount}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-content-muted">凹陷顶点数</span>
-                  <span className="text-content-secondary font-mono">{modelDiffResult.negativeCount}</span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-content-muted">无差异顶点</span>
-                  <span className="text-content-secondary font-mono">{modelDiffResult.zeroCount}</span>
-                </div>
-              </div>
-            )}
-
-            {compareMode === 'diffcolormap' && (
-              <button
-                onClick={() => runAnalysis('compare')}
                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
               >
-                重新计算差异
+                重新计算
               </button>
-            )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className="p-4 flex-1 overflow-y-auto">
+        {analysisMode === 'compare' && (
+          <div className="pb-4 mb-4 border-b border-edge-subtle">
+            <h3 className="text-sm font-semibold text-content-secondary mb-3">对比模式</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-content-muted block mb-2">显示方式</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'overlay', label: '叠加' },
+                    { id: 'sidebyside', label: '并排' },
+                    { id: 'diffcolormap', label: '差异色' },
+                  ].map((mode) => {
+                    const isActive = compareMode === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        onClick={() => {
+                          setCompareMode(mode.id as CompareMode);
+                          if (mode.id === 'diffcolormap' && model && model2) {
+                            setIsLoading(true);
+                            setTimeout(() => {
+                              try {
+                                const result = computeModelDiff(model, model2);
+                                setModelDiffResult(result);
+                              } catch (error) {
+                                console.error('差异计算失败:', error);
+                                alert('差异计算失败，请重试');
+                              } finally {
+                                setIsLoading(false);
+                              }
+                            }, 100);
+                          } else {
+                            setModelDiffResult(null);
+                          }
+                        }}
+                        className={`py-2 text-xs rounded-lg transition-colors ${
+                          isActive
+                            ? 'bg-cyan-600 text-white'
+                            : 'bg-surface-elevated text-content-secondary hover:bg-surface-hover border border-edge-subtle'
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {compareMode !== 'diffcolormap' && (
+                <>
+                  <div className="pt-2 border-t border-edge-subtle">
+                    <label className="text-xs text-content-muted block mb-2">
+                      模型颜色
+                    </label>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: model1Color }} />
+                          <span className="text-xs text-content-muted">模型1</span>
+                        </div>
+                        <input
+                          type="color"
+                          value={model1Color}
+                          onChange={(e) => setModel1Color(e.target.value)}
+                          className="w-full h-8 rounded cursor-pointer bg-transparent"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: model2Color }} />
+                          <span className="text-xs text-content-muted">模型2</span>
+                        </div>
+                        <input
+                          type="color"
+                          value={model2Color}
+                          onChange={(e) => setModel2Color(e.target.value)}
+                          className="w-full h-8 rounded cursor-pointer bg-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-content-muted block mb-1">
+                      模型1透明度: {model1Opacity.toFixed(2)}
+                    </label>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      value={model1Opacity}
+                      onChange={(e) => setModel1Opacity(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-content-muted block mb-1">
+                      模型2透明度: {model2Opacity.toFixed(2)}
+                    </label>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1"
+                      step="0.05"
+                      value={model2Opacity}
+                      onChange={(e) => setModel2Opacity(parseFloat(e.target.value))}
+                      className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              {compareMode === 'diffcolormap' && modelDiffResult && (
+                <div className="pt-2 border-t border-edge-subtle space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-content-muted">最大凸出</span>
+                    <span className="text-red-400 font-mono">{modelDiffResult.maxDistance.toFixed(2)} mm</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-content-muted">最大凹陷</span>
+                    <span className="text-blue-400 font-mono">{modelDiffResult.minDistance.toFixed(2)} mm</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-content-muted">平均差异</span>
+                    <span className="text-content-secondary font-mono">{modelDiffResult.avgDistance.toFixed(2)} mm</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-content-muted">凸出顶点数</span>
+                    <span className="text-content-secondary font-mono">{modelDiffResult.positiveCount}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-content-muted">凹陷顶点数</span>
+                    <span className="text-content-secondary font-mono">{modelDiffResult.negativeCount}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-content-muted">无差异顶点</span>
+                    <span className="text-content-secondary font-mono">{modelDiffResult.zeroCount}</span>
+                  </div>
+                </div>
+              )}
+
+              {compareMode === 'diffcolormap' && (
+                <button
+                  onClick={() => runAnalysis('compare')}
+                  className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+                >
+                  重新计算差异
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="mb-5 pb-4 border-b border-edge-subtle">
           <AnnotationPanel />
         </div>
