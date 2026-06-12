@@ -108,6 +108,49 @@ export interface ModelDiffResult {
   distanceDistribution: { range: string; count: number; percentage: number }[];
 }
 
+export type AnnotationTool = 'text' | 'arrow' | 'dimension' | 'freehand' | 'none';
+
+export interface AnnotationStyle {
+  color: string;
+  fontSize: number;
+  fontFamily: string;
+  lineWidth: number;
+}
+
+export interface TextAnnotation {
+  id: string;
+  type: 'text';
+  position: Vector3;
+  text: string;
+  style: AnnotationStyle;
+}
+
+export interface ArrowAnnotation {
+  id: string;
+  type: 'arrow';
+  start: Vector3;
+  end: Vector3;
+  style: AnnotationStyle;
+}
+
+export interface DimensionAnnotation {
+  id: string;
+  type: 'dimension';
+  start: Vector3;
+  end: Vector3;
+  offset: number;
+  style: AnnotationStyle;
+}
+
+export interface FreehandAnnotation {
+  id: string;
+  type: 'freehand';
+  points: Vector3[];
+  style: AnnotationStyle;
+}
+
+export type Annotation = TextAnnotation | ArrowAnnotation | DimensionAnnotation | FreehandAnnotation;
+
 export type SectionAxis = 'x' | 'y' | 'z';
 
 export interface SectionPlane {

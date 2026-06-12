@@ -11,6 +11,8 @@ import { DrainHolesDisplay } from './DrainHolesDisplay';
 import { ThicknessSamplesDisplay } from './ThicknessSamplesDisplay';
 import { SectionPlane } from './SectionPlane';
 import { SectionContour } from './SectionContour';
+import { Annotations3D } from './Annotations3D';
+import { AnnotationInteraction } from './AnnotationInteraction';
 import { createSampleBoxModel } from '@/utils/modelLoader';
 import { computeSection } from '@/utils/section';
 
@@ -380,7 +382,11 @@ function Scene() {
             <SectionContour result={sectionResult} />
           </>
         )}
+
+        <Annotations3D />
       </group>
+
+      <AnnotationInteraction />
 
       {showGrid && (
         <Grid
@@ -427,6 +433,7 @@ export function ModelViewer() {
   const isLoading = useAppStore((state) => state.isLoading);
   const analysisMode = useAppStore((state) => state.analysisMode);
   const modelDiffResult = useAppStore((state) => state.modelDiffResult);
+  const annotationTool = useAppStore((state) => state.annotationTool);
 
   return (
     <div className="w-full h-full relative bg-surface-base">
@@ -454,10 +461,21 @@ export function ModelViewer() {
       )}
 
       {analysisMode === 'compare' && modelDiffResult && (
-        <DiffColorLegend 
-          minDistance={modelDiffResult.minDistance} 
-          maxDistance={modelDiffResult.maxDistance} 
+        <DiffColorLegend
+          minDistance={modelDiffResult.minDistance}
+          maxDistance={modelDiffResult.maxDistance}
         />
+      )}
+
+      {annotationTool !== 'none' && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-emerald-600/90 backdrop-blur-sm rounded-lg text-sm text-white font-medium shadow-lg border border-emerald-400/30">
+          标注模式: {{
+            text: '文字标注 - 点击添加',
+            arrow: '箭头标注 - 点击两点',
+            dimension: '尺寸标注 - 点击两点',
+            freehand: '自由笔画 - 按住拖动',
+          }[annotationTool]}
+        </div>
       )}
 
       <div className="absolute bottom-4 left-4 flex gap-2">

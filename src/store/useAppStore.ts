@@ -14,6 +14,9 @@ import type {
   SectionAxis,
   CompareMode,
   ModelDiffResult,
+  Annotation,
+  AnnotationTool,
+  AnnotationStyle,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -52,6 +55,12 @@ interface AppState {
   showGrid: boolean;
   showAxes: boolean;
   autoRotate: boolean;
+
+  annotations: Annotation[];
+  annotationTool: AnnotationTool;
+  annotationStyle: AnnotationStyle;
+  selectedAnnotationId: string | null;
+  isDrawingFreehand: boolean;
 
   sectionPlane: SectionPlane;
   sectionResult: SectionResult | null;
@@ -97,6 +106,15 @@ interface AppState {
   setActiveDialog: (dialog: DialogType) => void;
   closeDialog: () => void;
 
+  addAnnotation: (annotation: Annotation) => void;
+  removeAnnotation: (id: string) => void;
+  updateAnnotation: (id: string, updates: Partial<Annotation>) => void;
+  setAnnotationTool: (tool: AnnotationTool) => void;
+  setAnnotationStyle: (style: Partial<AnnotationStyle>) => void;
+  setSelectedAnnotationId: (id: string | null) => void;
+  setIsDrawingFreehand: (drawing: boolean) => void;
+  clearAnnotations: () => void;
+
   resetAnalysis: () => void;
 }
 
@@ -141,6 +159,17 @@ export const useAppStore = create<AppState>((set) => ({
   autoRotate: false,
   isDarkMode: true,
   activeDialog: 'none',
+
+  annotations: [],
+  annotationTool: 'none',
+  annotationStyle: {
+    color: '#00ff88',
+    fontSize: 3,
+    fontFamily: 'sans-serif',
+    lineWidth: 1,
+  },
+  selectedAnnotationId: null,
+  isDrawingFreehand: false,
 
   sectionPlane: {
     axis: 'y',
@@ -199,6 +228,27 @@ export const useAppStore = create<AppState>((set) => ({
   toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
   setActiveDialog: (dialog) => set({ activeDialog: dialog }),
   closeDialog: () => set({ activeDialog: 'none' }),
+
+  addAnnotation: (annotation) =>
+    set((state) => ({ annotations: [...state.annotations, annotation] })),
+  removeAnnotation: (id) =>
+    set((state) => ({
+      annotations: state.annotations.filter((a) => a.id !== id),
+      selectedAnnotationId: state.selectedAnnotationId === id ? null : state.selectedAnnotationId,
+    })),
+  updateAnnotation: (id, updates) =>
+    set((state) => ({
+      annotations: state.annotations.map((a) =>
+        a.id === id ? { ...a, ...updates } : a
+      ),
+    })),
+  setAnnotationTool: (tool) => set({ annotationTool: tool }),
+  setAnnotationStyle: (style) =>
+    set((state) => ({ annotationStyle: { ...state.annotationStyle, ...style } })),
+  setSelectedAnnotationId: (id) => set({ selectedAnnotationId: id }),
+  setIsDrawingFreehand: (drawing) => set({ isDrawingFreehand: drawing }),
+  clearAnnotations: () =>
+    set({ annotations: [], selectedAnnotationId: null }),
 
   resetAnalysis: () =>
     set({

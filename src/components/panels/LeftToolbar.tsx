@@ -14,6 +14,7 @@ import {
   Scissors,
   GitCompare,
   Palette,
+  PenTool,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { loadModelFromFile, createSampleBoxModel, createSampleBowlModel } from '@/utils/modelLoader';
@@ -23,6 +24,7 @@ import { planDrainHoles } from '@/utils/drainHoles';
 import { estimateMoldingCycle, MATERIAL_OPTIONS } from '@/utils/moldingCycle';
 import { computeSection, getPlaneBounds } from '@/utils/section';
 import { computeModelDiff } from '@/utils/modelDiff';
+import { AnnotationPanel } from './AnnotationPanel';
 import type { AnalysisMode, VisualizationMode, SectionAxis, CompareMode } from '@/types';
 
 const tools = [
@@ -804,6 +806,10 @@ export function LeftToolbar() {
           </div>
         </div>
       )}
+
+      <div className="p-4 border-b border-edge-subtle">
+        <AnnotationPanel />
+      </div>
 
       <div className="p-4 flex-1 overflow-y-auto">
         <h3 className="text-sm font-semibold text-content-secondary mb-3">视图设置</h3>
