@@ -18,6 +18,7 @@ export function ModelMesh({ model }: ModelMeshProps) {
   const analysisMode = useAppStore((state) => state.analysisMode);
   const visualizationMode = useAppStore((state) => state.visualizationMode);
   const draftAngleResult = useAppStore((state) => state.draftAngleResult);
+  const highlightUndercuts = useAppStore((state) => state.highlightUndercuts);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
   const sectionPlane = useAppStore((state) => state.sectionPlane);
   const autoRotate = useAppStore((state) => state.autoRotate);
@@ -64,14 +65,22 @@ export function ModelMesh({ model }: ModelMeshProps) {
     });
 
     if (analysisMode === 'draft' && draftAngleResult) {
-      const colors = createDraftAngleVertexColors(
-        { vertices: model.vertices, indices: model.indices } as any,
-        draftAngleResult
-      );
-      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      mat.vertexColors = true;
-      mat.metalness = 0.1;
-      mat.roughness = 0.7;
+      if (highlightUndercuts && draftAngleResult.undercutRegions.length > 0) {
+        mat.color = new THREE.Color(0x4a5568);
+        mat.transparent = true;
+        mat.opacity = 0.35;
+        mat.metalness = 0.1;
+        mat.roughness = 0.8;
+      } else {
+        const colors = createDraftAngleVertexColors(
+          { vertices: model.vertices, indices: model.indices } as any,
+          draftAngleResult
+        );
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        mat.vertexColors = true;
+        mat.metalness = 0.1;
+        mat.roughness = 0.7;
+      }
     } else if (analysisMode === 'thickness' && wallThicknessResult) {
       mat.color = new THREE.Color(0x4a90d9);
       mat.metalness = 0.1;
@@ -88,7 +97,7 @@ export function ModelMesh({ model }: ModelMeshProps) {
     }
 
     return mat;
-  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model, clippingPlanes]);
+  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model, clippingPlanes, highlightUndercuts]);
 
   useEffect(() => {
     if (material) {

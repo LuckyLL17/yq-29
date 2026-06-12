@@ -22,6 +22,36 @@ export interface ModelData {
   vertexCount: number;
 }
 
+export interface UndercutRegion {
+  id: string;
+  faceIndices: number[];
+  vertexIndices: Set<number>;
+  boundingBox: BoundingBox;
+  centroid: Vector3;
+  area: number;
+  minAngle: number;
+  maxAngle: number;
+  avgAngle: number;
+  dimensions: {
+    width: number;
+    height: number;
+    depth: number;
+    maxExtent: number;
+  };
+  severity: 'critical' | 'high' | 'medium' | 'low';
+}
+
+export interface RepairSuggestion {
+  id: string;
+  regionId: string;
+  type: 'add_draft' | 'fillet' | 'chamfer' | 'redesign' | 'split';
+  title: string;
+  description: string;
+  estimatedImprovement: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  targetAngle?: number;
+}
+
 export interface DraftAngleResult {
   faceAngles: Float32Array;
   minAngle: number;
@@ -31,6 +61,8 @@ export interface DraftAngleResult {
   draftDirection: Vector3;
   threshold: number;
   angleDistribution: { range: string; count: number; percentage: number }[];
+  undercutRegions: UndercutRegion[];
+  repairSuggestions: RepairSuggestion[];
 }
 
 export interface WallThicknessSample {

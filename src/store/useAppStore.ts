@@ -44,6 +44,9 @@ interface AppState {
   draftAngleThreshold: number;
   draftDirection: Vector3;
   draftAngleResult: DraftAngleResult | null;
+  selectedUndercutRegionId: string | null;
+  highlightUndercuts: boolean;
+  cameraFocusTarget: Vector3 | null;
 
   wallThicknessResult: WallThicknessResult | null;
   thicknessSampleCount: number;
@@ -88,6 +91,10 @@ interface AppState {
   setDraftAngleThreshold: (threshold: number) => void;
   setDraftDirection: (direction: Vector3) => void;
   setDraftAngleResult: (result: DraftAngleResult | null) => void;
+  setSelectedUndercutRegionId: (id: string | null) => void;
+  setHighlightUndercuts: (highlight: boolean) => void;
+  setCameraFocusTarget: (target: Vector3 | null) => void;
+  focusOnUndercutRegion: (regionId: string) => void;
 
   setWallThicknessResult: (result: WallThicknessResult | null) => void;
   setThicknessSampleCount: (count: number) => void;
@@ -168,6 +175,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   draftAngleThreshold: 5,
   draftDirection: { x: 0, y: 1, z: 0 },
   draftAngleResult: null,
+  selectedUndercutRegionId: null,
+  highlightUndercuts: true,
+  cameraFocusTarget: null,
 
   wallThicknessResult: null,
   thicknessSampleCount: 500,
@@ -380,7 +390,23 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setDraftAngleThreshold: (threshold) => set({ draftAngleThreshold: threshold }),
   setDraftDirection: (direction) => set({ draftDirection: direction }),
-  setDraftAngleResult: (result) => set({ draftAngleResult: result }),
+  setDraftAngleResult: (result) => set({ draftAngleResult: result, selectedUndercutRegionId: null }),
+  setSelectedUndercutRegionId: (id) => set({ selectedUndercutRegionId: id }),
+  setHighlightUndercuts: (highlight) => set({ highlightUndercuts: highlight }),
+  setCameraFocusTarget: (target) => set({ cameraFocusTarget: target }),
+  focusOnUndercutRegion: (regionId) => {
+    const state = get();
+    const result = state.draftAngleResult;
+    if (!result) return;
+    
+    const region = result.undercutRegions.find((r) => r.id === regionId);
+    if (region) {
+      set({
+        selectedUndercutRegionId: regionId,
+        cameraFocusTarget: { ...region.centroid },
+      });
+    }
+  },
 
   setWallThicknessResult: (result) => set({ wallThicknessResult: result }),
   setThicknessSampleCount: (count) => set({ thicknessSampleCount: count }),

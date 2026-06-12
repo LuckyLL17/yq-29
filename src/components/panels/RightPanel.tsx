@@ -13,6 +13,14 @@ import {
   Scissors,
   Square,
   GitCompare,
+  Maximize2,
+  Lightbulb,
+  Eye,
+  EyeOff,
+  Wrench,
+  ChevronRight,
+  ChevronDown,
+  Crosshair,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { DraftAngleChart, ThicknessChart, CyclePieChart } from '../charts/AnalysisCharts';
@@ -26,6 +34,11 @@ export function RightPanel() {
   const compareMode = useAppStore((state) => state.compareMode);
   const modelDiffResult = useAppStore((state) => state.modelDiffResult);
   const draftAngleResult = useAppStore((state) => state.draftAngleResult);
+  const selectedUndercutRegionId = useAppStore((state) => state.selectedUndercutRegionId);
+  const highlightUndercuts = useAppStore((state) => state.highlightUndercuts);
+  const focusOnUndercutRegion = useAppStore((state) => state.focusOnUndercutRegion);
+  const setSelectedUndercutRegionId = useAppStore((state) => state.setSelectedUndercutRegionId);
+  const setHighlightUndercuts = useAppStore((state) => state.setHighlightUndercuts);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
   const cycleResult = useAppStore((state) => state.cycleResult);
@@ -63,7 +76,52 @@ export function RightPanel() {
       report += `最大脱模角: ${draftAngleResult.maxAngle.toFixed(2)}°\n`;
       report += `平均脱模角: ${draftAngleResult.avgAngle.toFixed(2)}°\n`;
       report += `倒扣面数量: ${draftAngleResult.undercutFaceCount}\n`;
-      report += `脱模方向阈值: ${draftAngleResult.threshold}°\n\n`;
+      report += `脱模方向阈值: ${draftAngleResult.threshold}°\n`;
+      
+      if (draftAngleResult.undercutRegions.length > 0) {
+        report += `\n--- 倒扣区域详情 (共 ${draftAngleResult.undercutRegions.length} 个) ---\n`;
+        draftAngleResult.undercutRegions.forEach((region, idx) => {
+          const severityMap: Record<string, string> = {
+            critical: '严重',
+            high: '高',
+            medium: '中',
+            low: '低',
+          };
+          report += `\n区域 ${idx + 1} (${region.id}):\n`;
+          report += `  严重程度: ${severityMap[region.severity] || region.severity}\n`;
+          report += `  平均角度: ${region.avgAngle.toFixed(2)}°\n`;
+          report += `  面积: ${region.area.toFixed(2)} mm²\n`;
+          report += `  尺寸: ${region.dimensions.width.toFixed(1)} × ${region.dimensions.height.toFixed(1)} × ${region.dimensions.depth.toFixed(1)} mm\n`;
+          report += `  面数: ${region.faceIndices.length}\n`;
+        });
+      }
+      
+      if (draftAngleResult.repairSuggestions.length > 0) {
+        report += `\n--- 修复建议 (共 ${draftAngleResult.repairSuggestions.length} 条) ---\n`;
+        const typeMap: Record<string, string> = {
+          add_draft: '增加脱模斜度',
+          fillet: '增加圆角过渡',
+          chamfer: '添加倒角',
+          redesign: '重新设计',
+          split: '滑块/抽芯结构',
+        };
+        const diffMap: Record<string, string> = {
+          easy: '简单',
+          medium: '中等',
+          hard: '困难',
+        };
+        draftAngleResult.repairSuggestions.forEach((suggestion, idx) => {
+          report += `\n建议 ${idx + 1}:\n`;
+          report += `  类型: ${typeMap[suggestion.type] || suggestion.type}\n`;
+          report += `  标题: ${suggestion.title}\n`;
+          report += `  相关区域: ${suggestion.regionId}\n`;
+          report += `  难度: ${diffMap[suggestion.difficulty] || suggestion.difficulty}\n`;
+          report += `  描述: ${suggestion.description}\n`;
+          report += `  预期效果: ${suggestion.estimatedImprovement}\n`;
+        });
+      }
+      
+      report += '\n';
     }
 
     if (wallThicknessResult) {
@@ -234,7 +292,7 @@ export function RightPanel() {
                   ) : (
                     <CheckCircle size={18} className="text-green-400 flex-shrink-0 mt-0.5" />
                   )}
-                  <div>
+                  <div className="flex-1">
                     <p className="text-xs font-medium text-content-secondary">
                       {draftAngleResult.undercutFaceCount > 0
                         ? '存在倒扣区域'
@@ -242,14 +300,214 @@ export function RightPanel() {
                     </p>
                     <p className="text-xs text-content-muted mt-0.5">
                       共 {draftAngleResult.undercutFaceCount} 个面小于 {draftAngleResult.threshold}°
+                      {draftAngleResult.undercutRegions.length > 0 && `，分为 ${draftAngleResult.undercutRegions.length} 个连通区域`}
                     </p>
                   </div>
+                  {draftAngleResult.undercutRegions.length > 0 && (
+                    <button
+                      onClick={() => setHighlightUndercuts(!highlightUndercuts)}
+                      className="text-xs px-2 py-1 rounded bg-surface-elevated hover:bg-surface-hover text-content-secondary transition-colors"
+                      title={highlightUndercuts ? '关闭3D高亮' : '开启3D高亮'}
+                    >
+                      {highlightUndercuts ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </button>
+                  )}
                 </div>
 
                 <div>
                   <p className="text-xs text-content-muted mb-2">角度分布</p>
                   <DraftAngleChart result={draftAngleResult} />
                 </div>
+
+                {draftAngleResult.undercutRegions.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Maximize2 size={14} className="text-orange-400" />
+                        <h5 className="text-xs font-medium text-content-secondary">倒扣区域列表</h5>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded">
+                          {draftAngleResult.undercutRegions.length}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setSelectedUndercutRegionId(null)}
+                        className="text-[10px] text-content-muted hover:text-content-secondary transition-colors"
+                      >
+                        取消选中
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {draftAngleResult.undercutRegions.map((region) => {
+                        const isSelected = selectedUndercutRegionId === region.id;
+                        const severityColors: Record<string, string> = {
+                          critical: 'bg-red-500',
+                          high: 'bg-orange-500',
+                          medium: 'bg-yellow-500',
+                          low: 'bg-green-500',
+                        };
+                        const severityLabels: Record<string, string> = {
+                          critical: '严重',
+                          high: '高',
+                          medium: '中',
+                          low: '低',
+                        };
+
+                        return (
+                          <div
+                            key={region.id}
+                            className={`rounded-lg border transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-orange-500/15 border-orange-500/50'
+                                : 'bg-surface-elevated/30 border-edge-subtle hover:bg-surface-elevated/50 hover:border-edge-base'
+                            }`}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedUndercutRegionId(null);
+                              } else {
+                                focusOnUndercutRegion(region.id);
+                              }
+                            }}
+                          >
+                            <div className="p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2.5 h-2.5 rounded-full ${severityColors[region.severity]}`} />
+                                  <span className="text-xs font-semibold text-content-secondary">
+                                    {region.id.toUpperCase()}
+                                  </span>
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-surface-active rounded text-content-muted">
+                                    {severityLabels[region.severity]}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    focusOnUndercutRegion(region.id);
+                                  }}
+                                  className="p-1 rounded hover:bg-surface-hover text-content-muted hover:text-cyan-400 transition-colors"
+                                  title="定位到该区域"
+                                >
+                                  <Crosshair size={12} />
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                <div className="bg-surface-inset/50 rounded px-2 py-1">
+                                  <span className="text-content-muted">角度</span>
+                                  <p className="text-content-secondary font-mono mt-0.5">
+                                    {region.avgAngle.toFixed(1)}°
+                                  </p>
+                                </div>
+                                <div className="bg-surface-inset/50 rounded px-2 py-1">
+                                  <span className="text-content-muted">面积</span>
+                                  <p className="text-content-secondary font-mono mt-0.5">
+                                    {region.area.toFixed(1)}mm²
+                                  </p>
+                                </div>
+                                <div className="bg-surface-inset/50 rounded px-2 py-1">
+                                  <span className="text-content-muted">尺寸</span>
+                                  <p className="text-content-secondary font-mono mt-0.5">
+                                    {region.dimensions.width.toFixed(0)}×{region.dimensions.height.toFixed(0)}×{region.dimensions.depth.toFixed(0)}
+                                  </p>
+                                </div>
+                                <div className="bg-surface-inset/50 rounded px-2 py-1">
+                                  <span className="text-content-muted">面数</span>
+                                  <p className="text-content-secondary font-mono mt-0.5">
+                                    {region.faceIndices.length}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {draftAngleResult.repairSuggestions.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb size={14} className="text-yellow-400" />
+                      <h5 className="text-xs font-medium text-content-secondary">修复建议</h5>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">
+                        {draftAngleResult.repairSuggestions.length}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {draftAngleResult.repairSuggestions.map((suggestion) => {
+                        const typeIcons: Record<string, React.ReactNode> = {
+                          add_draft: <Triangle size={12} />,
+                          fillet: <Square size={12} />,
+                          chamfer: <Minus size={12} />,
+                          redesign: <Wrench size={12} />,
+                          split: <Scissors size={12} />,
+                        };
+                        const difficultyColors: Record<string, string> = {
+                          easy: 'text-green-400 bg-green-500/20',
+                          medium: 'text-yellow-400 bg-yellow-500/20',
+                          hard: 'text-red-400 bg-red-500/20',
+                        };
+                        const difficultyLabels: Record<string, string> = {
+                          easy: '简单',
+                          medium: '中等',
+                          hard: '困难',
+                        };
+                        const relatedRegion = draftAngleResult.undercutRegions.find(
+                          (r) => r.id === suggestion.regionId
+                        );
+
+                        return (
+                          <div
+                            key={suggestion.id}
+                            className="bg-surface-elevated/30 rounded-lg border border-edge-subtle overflow-hidden"
+                          >
+                            <div
+                              className="p-3 cursor-pointer hover:bg-surface-elevated/50 transition-colors"
+                              onClick={() => {
+                                if (relatedRegion) {
+                                  focusOnUndercutRegion(suggestion.regionId);
+                                }
+                              }}
+                            >
+                              <div className="flex items-start gap-2">
+                                <div className="p-1.5 bg-cyan-500/20 rounded text-cyan-400 mt-0.5">
+                                  {typeIcons[suggestion.type] || <Lightbulb size={12} />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-medium text-content-secondary">
+                                      {suggestion.title}
+                                    </span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${difficultyColors[suggestion.difficulty]}`}>
+                                      {difficultyLabels[suggestion.difficulty]}
+                                    </span>
+                                    {relatedRegion && (
+                                      <span className="text-[10px] px-1.5 py-0.5 bg-surface-active rounded text-content-muted">
+                                        {relatedRegion.id.toUpperCase()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-content-muted leading-relaxed">
+                                    {suggestion.description}
+                                  </p>
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <CheckCircle size={10} className="text-green-400 flex-shrink-0" />
+                                    <span className="text-[10px] text-green-400">
+                                      预期效果: {suggestion.estimatedImprovement}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </>
             ) : (
               <div className="text-center py-8 text-content-faint text-sm">

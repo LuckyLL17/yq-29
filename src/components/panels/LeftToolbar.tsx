@@ -71,6 +71,8 @@ export function LeftToolbar() {
   const draftDirection = useAppStore((state) => state.draftDirection);
   const setDraftDirection = useAppStore((state) => state.setDraftDirection);
   const setDraftAngleResult = useAppStore((state) => state.setDraftAngleResult);
+  const highlightUndercuts = useAppStore((state) => state.highlightUndercuts);
+  const setHighlightUndercuts = useAppStore((state) => state.setHighlightUndercuts);
 
   const thicknessSampleCount = useAppStore((state) => state.thicknessSampleCount);
   const setThicknessSampleCount = useAppStore((state) => state.setThicknessSampleCount);
@@ -377,6 +379,22 @@ export function LeftToolbar() {
                   ))}
                 </div>
               </div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-content-muted">3D高亮倒扣面</label>
+                <button
+                  onClick={() => setHighlightUndercuts(!highlightUndercuts)}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${
+                    highlightUndercuts ? 'bg-cyan-500' : 'bg-surface-active'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                      highlightUndercuts ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
               <button
                 onClick={() => runAnalysis('draft')}
                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"

@@ -15,6 +15,7 @@ import { SectionPlane } from './SectionPlane';
 import { SectionContour } from './SectionContour';
 import { Annotations3D } from './Annotations3D';
 import { AnnotationInteraction } from './AnnotationInteraction';
+import { UndercutRegionsDisplay } from './UndercutRegionsDisplay';
 import { TextAnnotationDialog } from '@/components/dialogs/TextAnnotationDialog';
 import { createSampleBoxModel } from '@/utils/modelLoader';
 import { computeSection } from '@/utils/section';
@@ -321,10 +322,18 @@ function Scene() {
   const modelLayers = useAppStore((state) => state.modelLayers);
   const layerSplitStrategy = useAppStore((state) => state.layerSplitStrategy);
   const setModelLayers = useAppStore((state) => state.setModelLayers);
+  const draftAngleResult = useAppStore((state) => state.draftAngleResult);
+  const highlightUndercuts = useAppStore((state) => state.highlightUndercuts);
+  const selectedUndercutRegionId = useAppStore((state) => state.selectedUndercutRegionId);
+  const cameraFocusTarget = useAppStore((state) => state.cameraFocusTarget);
+  const setSelectedUndercutRegionId = useAppStore((state) => state.setSelectedUndercutRegionId);
+  const setCameraFocusTarget = useAppStore((state) => state.setCameraFocusTarget);
 
   const displayModel = model || createSampleBoxModel();
 
   const controlsRef = useRef<any>(null);
+  const { camera } = useThree();
+  const focusAnimRef = useRef<{ target: THREE.Vector3; progress: number } | null>(null);
 
   useEffect(() => {
     if (layersEnabled && displayModel && modelLayers.length === 0) {
@@ -343,6 +352,51 @@ function Scene() {
       setSectionResult(result);
     }
   }, [sectionPlane.position, sectionPlane.axis, analysisMode, displayModel, sectionPlane.visible, sectionThicknessResolution, setSectionResult]);
+
+  useEffect(() => {
+    if (cameraFocusTarget && controlsRef.current) {
+      const target = new THREE.Vector3(
+        cameraFocusTarget.x,
+        cameraFocusTarget.y,
+        cameraFocusTarget.z
+      );
+      focusAnimRef.current = {
+        target,
+        progress: 0,
+      };
+    }
+  }, [cameraFocusTarget]);
+
+  useFrame((_, delta) => {
+    if (focusAnimRef.current && controlsRef.current) {
+      focusAnimRef.current.progress += delta * 2;
+      const t = Math.min(focusAnimRef.current.progress, 1);
+      const easeT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      const currentTarget = new THREE.Vector3();
+      controlsRef.current.target.clone(currentTarget);
+      
+      const newTarget = currentTarget.lerp(focusAnimRef.current.target, easeT);
+      controlsRef.current.target.copy(newTarget);
+
+      const offset = new THREE.Vector3(0, 30, 60);
+      const desiredCamPos = newTarget.clone().add(offset);
+      camera.position.lerp(desiredCamPos, easeT * 0.5);
+
+      if (t >= 1) {
+        focusAnimRef.current = null;
+        setCameraFocusTarget(null);
+      }
+    }
+  });
+
+  const handleRegionClick = (regionId: string) => {
+    if (selectedUndercutRegionId === regionId) {
+      setSelectedUndercutRegionId(null);
+    } else {
+      setSelectedUndercutRegionId(regionId);
+    }
+  };
 
   return (
     <>
@@ -386,6 +440,16 @@ function Scene() {
             samples={wallThicknessResult.samples}
             minThickness={wallThicknessResult.minThickness}
             maxThickness={wallThicknessResult.maxThickness}
+          />
+        )}
+
+        {analysisMode === 'draft' && draftAngleResult && highlightUndercuts && draftAngleResult.undercutRegions.length > 0 && (
+          <UndercutRegionsDisplay
+            regions={draftAngleResult.undercutRegions}
+            selectedRegionId={selectedUndercutRegionId}
+            vertices={displayModel.vertices}
+            indices={displayModel.indices}
+            onRegionClick={handleRegionClick}
           />
         )}
 
