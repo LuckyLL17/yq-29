@@ -11,6 +11,7 @@ import { DiffModelMesh } from './DiffModelMesh';
 import { DiffColorLegend } from './DiffColorLegend';
 import { DrainHolesDisplay } from './DrainHolesDisplay';
 import { ThicknessSamplesDisplay } from './ThicknessSamplesDisplay';
+import { ThicknessColorLegend } from './ThicknessColorLegend';
 import { SectionPlane } from './SectionPlane';
 import { SectionContour } from './SectionContour';
 import { Annotations3D } from './Annotations3D';
@@ -311,6 +312,8 @@ function Scene() {
   const analysisMode = useAppStore((state) => state.analysisMode);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
+  const thicknessColorScheme = useAppStore((state) => state.thicknessColorScheme);
+  const showThicknessHeatmap = useAppStore((state) => state.showThicknessHeatmap);
   const sectionResult = useAppStore((state) => state.sectionResult);
   const sectionPlane = useAppStore((state) => state.sectionPlane);
   const sectionThicknessResolution = useAppStore((state) => state.sectionThicknessResolution);
@@ -440,6 +443,8 @@ function Scene() {
             samples={wallThicknessResult.samples}
             minThickness={wallThicknessResult.minThickness}
             maxThickness={wallThicknessResult.maxThickness}
+            colorScheme={thicknessColorScheme}
+            visible={!showThicknessHeatmap}
           />
         )}
 
@@ -513,6 +518,7 @@ export function ModelViewer() {
   const isLoading = useAppStore((state) => state.isLoading);
   const analysisMode = useAppStore((state) => state.analysisMode);
   const modelDiffResult = useAppStore((state) => state.modelDiffResult);
+  const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
   const annotationTool = useAppStore((state) => state.annotationTool);
 
   return (
@@ -546,6 +552,14 @@ export function ModelViewer() {
         <DiffColorLegend
           minDistance={modelDiffResult.minDistance}
           maxDistance={modelDiffResult.maxDistance}
+        />
+      )}
+
+      {analysisMode === 'thickness' && wallThicknessResult && (
+        <ThicknessColorLegend
+          minThickness={wallThicknessResult.minThickness}
+          maxThickness={wallThicknessResult.maxThickness}
+          avgThickness={wallThicknessResult.avgThickness}
         />
       )}
 

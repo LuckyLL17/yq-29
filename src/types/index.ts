@@ -220,6 +220,8 @@ export interface SectionResult {
   plane: SectionPlane;
 }
 
+export type ThicknessColorScheme = 'rainbow' | 'coolwarm' | 'grayscale';
+
 export type LayerSplitAxis = 'x' | 'y' | 'z';
 
 export type LayerSplitStrategy =

@@ -20,6 +20,7 @@ import type {
   ModelLayer,
   LayerSplitStrategy,
   LayerSplitAxis,
+  ThicknessColorScheme,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -50,6 +51,9 @@ interface AppState {
 
   wallThicknessResult: WallThicknessResult | null;
   thicknessSampleCount: number;
+  thicknessColorScheme: ThicknessColorScheme;
+  showThicknessHeatmap: boolean;
+  focusThicknessTarget: Vector3 | null;
 
   drainHoleResult: DrainHoleResult | null;
   holeDiameter: number;
@@ -98,6 +102,11 @@ interface AppState {
 
   setWallThicknessResult: (result: WallThicknessResult | null) => void;
   setThicknessSampleCount: (count: number) => void;
+  setThicknessColorScheme: (scheme: ThicknessColorScheme) => void;
+  setShowThicknessHeatmap: (show: boolean) => void;
+  setFocusThicknessTarget: (target: Vector3 | null) => void;
+  focusOnThinnestPoint: () => void;
+  focusOnThickestPoint: () => void;
 
   setDrainHoleResult: (result: DrainHoleResult | null) => void;
   setHoleDiameter: (diameter: number) => void;
@@ -181,6 +190,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   wallThicknessResult: null,
   thicknessSampleCount: 500,
+  thicknessColorScheme: 'rainbow',
+  showThicknessHeatmap: true,
+  focusThicknessTarget: null,
 
   drainHoleResult: null,
   holeDiameter: 2,
@@ -410,6 +422,35 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setWallThicknessResult: (result) => set({ wallThicknessResult: result }),
   setThicknessSampleCount: (count) => set({ thicknessSampleCount: count }),
+  setThicknessColorScheme: (scheme) => set({ thicknessColorScheme: scheme }),
+  setShowThicknessHeatmap: (show) => set({ showThicknessHeatmap: show }),
+  setFocusThicknessTarget: (target) => set({ focusThicknessTarget: target }),
+  focusOnThinnestPoint: () => {
+    const state = get();
+    const result = state.wallThicknessResult;
+    if (!result || result.samples.length === 0) return;
+    let minSample = result.samples[0];
+    for (const s of result.samples) {
+      if (s.thickness < minSample.thickness) minSample = s;
+    }
+    set({
+      focusThicknessTarget: { x: minSample.x, y: minSample.y, z: minSample.z },
+      cameraFocusTarget: { x: minSample.x, y: minSample.y, z: minSample.z },
+    });
+  },
+  focusOnThickestPoint: () => {
+    const state = get();
+    const result = state.wallThicknessResult;
+    if (!result || result.samples.length === 0) return;
+    let maxSample = result.samples[0];
+    for (const s of result.samples) {
+      if (s.thickness > maxSample.thickness) maxSample = s;
+    }
+    set({
+      focusThicknessTarget: { x: maxSample.x, y: maxSample.y, z: maxSample.z },
+      cameraFocusTarget: { x: maxSample.x, y: maxSample.y, z: maxSample.z },
+    });
+  },
 
   setDrainHoleResult: (result) => set({ drainHoleResult: result }),
   setHoleDiameter: (diameter) => set({ holeDiameter: diameter }),

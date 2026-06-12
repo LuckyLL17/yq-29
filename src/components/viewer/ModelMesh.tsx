@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { createDraftAngleVertexColors } from '@/utils/draftAngle';
+import { createThicknessVertexColors } from '@/utils/wallThickness';
 
 interface ModelMeshProps {
   model: {
@@ -20,6 +21,8 @@ export function ModelMesh({ model }: ModelMeshProps) {
   const draftAngleResult = useAppStore((state) => state.draftAngleResult);
   const highlightUndercuts = useAppStore((state) => state.highlightUndercuts);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
+  const thicknessColorScheme = useAppStore((state) => state.thicknessColorScheme);
+  const showThicknessHeatmap = useAppStore((state) => state.showThicknessHeatmap);
   const sectionPlane = useAppStore((state) => state.sectionPlane);
   const autoRotate = useAppStore((state) => state.autoRotate);
 
@@ -71,6 +74,9 @@ export function ModelMesh({ model }: ModelMeshProps) {
         mat.opacity = 0.35;
         mat.metalness = 0.1;
         mat.roughness = 0.8;
+        if (geometry.getAttribute('color')) {
+          geometry.deleteAttribute('color');
+        }
       } else {
         const colors = createDraftAngleVertexColors(
           { vertices: model.vertices, indices: model.indices } as any,
@@ -82,11 +88,33 @@ export function ModelMesh({ model }: ModelMeshProps) {
         mat.roughness = 0.7;
       }
     } else if (analysisMode === 'thickness' && wallThicknessResult) {
-      mat.color = new THREE.Color(0x4a90d9);
-      mat.metalness = 0.1;
-      mat.roughness = 0.7;
-      mat.transparent = true;
-      mat.opacity = 0.85;
+      if (showThicknessHeatmap) {
+        const colors = createThicknessVertexColors(
+          { vertices: model.vertices, indices: model.indices },
+          wallThicknessResult,
+          thicknessColorScheme
+        );
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        mat.vertexColors = true;
+        mat.metalness = 0.05;
+        mat.roughness = 0.85;
+        mat.transparent = false;
+      } else {
+        if (geometry.getAttribute('color')) {
+          geometry.deleteAttribute('color');
+        }
+        mat.color = new THREE.Color(0x4a90d9);
+        mat.metalness = 0.1;
+        mat.roughness = 0.7;
+        mat.transparent = true;
+        mat.opacity = 0.85;
+        mat.vertexColors = false;
+      }
+    } else {
+      if (geometry.getAttribute('color')) {
+        geometry.deleteAttribute('color');
+      }
+      mat.vertexColors = false;
     }
 
     if (visualizationMode === 'wireframe') {
@@ -97,7 +125,18 @@ export function ModelMesh({ model }: ModelMeshProps) {
     }
 
     return mat;
-  }, [analysisMode, visualizationMode, draftAngleResult, wallThicknessResult, geometry, model, clippingPlanes, highlightUndercuts]);
+  }, [
+    analysisMode,
+    visualizationMode,
+    draftAngleResult,
+    wallThicknessResult,
+    thicknessColorScheme,
+    showThicknessHeatmap,
+    geometry,
+    model,
+    clippingPlanes,
+    highlightUndercuts,
+  ]);
 
   useEffect(() => {
     if (material) {

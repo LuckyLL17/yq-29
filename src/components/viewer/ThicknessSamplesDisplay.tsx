@@ -1,18 +1,22 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import type { WallThicknessSample } from '@/types';
+import type { WallThicknessSample, ThicknessColorScheme } from '@/types';
 import { getThicknessColor } from '@/utils/wallThickness';
 
 interface ThicknessSamplesDisplayProps {
   samples: WallThicknessSample[];
   minThickness: number;
   maxThickness: number;
+  colorScheme?: ThicknessColorScheme;
+  visible?: boolean;
 }
 
 export function ThicknessSamplesDisplay({
   samples,
   minThickness,
   maxThickness,
+  colorScheme = 'rainbow',
+  visible = true,
 }: ThicknessSamplesDisplayProps) {
   const pointsGeometry = useMemo(() => {
     const positions = new Float32Array(samples.length * 3);
@@ -23,7 +27,7 @@ export function ThicknessSamplesDisplay({
       positions[index * 3 + 1] = sample.y;
       positions[index * 3 + 2] = sample.z;
 
-      const color = getThicknessColor(sample.thickness, minThickness, maxThickness);
+      const color = getThicknessColor(sample.thickness, minThickness, maxThickness, colorScheme);
       colors[index * 3] = color.r;
       colors[index * 3 + 1] = color.g;
       colors[index * 3 + 2] = color.b;
@@ -34,7 +38,9 @@ export function ThicknessSamplesDisplay({
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     return geometry;
-  }, [samples, minThickness, maxThickness]);
+  }, [samples, minThickness, maxThickness, colorScheme]);
+
+  if (!visible) return null;
 
   return (
     <points geometry={pointsGeometry}>

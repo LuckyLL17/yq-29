@@ -21,9 +21,11 @@ import {
   ChevronRight,
   ChevronDown,
   Crosshair,
+  Palette,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import { DraftAngleChart, ThicknessChart, CyclePieChart } from '../charts/AnalysisCharts';
+import type { ThicknessColorScheme } from '@/types';
+import { DraftAngleChart, ThicknessChart, CyclePieChart, SectionThicknessCurve } from '../charts/AnalysisCharts';
 
 export function RightPanel() {
   const model = useAppStore((state) => state.model);
@@ -40,6 +42,12 @@ export function RightPanel() {
   const setSelectedUndercutRegionId = useAppStore((state) => state.setSelectedUndercutRegionId);
   const setHighlightUndercuts = useAppStore((state) => state.setHighlightUndercuts);
   const wallThicknessResult = useAppStore((state) => state.wallThicknessResult);
+  const thicknessColorScheme = useAppStore((state) => state.thicknessColorScheme);
+  const setThicknessColorScheme = useAppStore((state) => state.setThicknessColorScheme);
+  const showThicknessHeatmap = useAppStore((state) => state.showThicknessHeatmap);
+  const setShowThicknessHeatmap = useAppStore((state) => state.setShowThicknessHeatmap);
+  const focusOnThinnestPoint = useAppStore((state) => state.focusOnThinnestPoint);
+  const focusOnThickestPoint = useAppStore((state) => state.focusOnThickestPoint);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
   const cycleResult = useAppStore((state) => state.cycleResult);
   const sectionResult = useAppStore((state) => state.sectionResult);
@@ -519,20 +527,37 @@ export function RightPanel() {
 
         {analysisMode === 'thickness' && (
           <div className="p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <Ruler size={16} className="text-cyan-400" />
-              <h4 className="text-sm font-medium text-content-secondary">壁厚分布分析</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Ruler size={16} className="text-cyan-400" />
+                <h4 className="text-sm font-medium text-content-secondary">壁厚分布分析</h4>
+              </div>
+              <button
+                onClick={() => setShowThicknessHeatmap(!showThicknessHeatmap)}
+                className="flex items-center gap-1 text-[10px] px-2 py-1 rounded bg-surface-elevated hover:bg-surface-hover text-content-muted hover:text-content-secondary transition-colors"
+                title={showThicknessHeatmap ? '隐藏表面热力图' : '显示表面热力图'}
+              >
+                {showThicknessHeatmap ? <Eye size={12} /> : <EyeOff size={12} />}
+                {showThicknessHeatmap ? '热力图开' : '热力图关'}
+              </button>
             </div>
 
             {wallThicknessResult ? (
               <>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center relative">
                     <p className="text-xs text-content-muted mb-1">最薄</p>
                     <p className="text-lg font-bold text-red-400 font-mono">
                       {wallThicknessResult.minThickness.toFixed(2)}
                     </p>
                     <p className="text-xs text-content-faint">mm</p>
+                    <button
+                      onClick={focusOnThinnestPoint}
+                      className="absolute top-1 right-1 p-1 rounded hover:bg-surface-hover text-content-muted hover:text-red-400 transition-colors"
+                      title="定位到最薄位置"
+                    >
+                      <Crosshair size={11} />
+                    </button>
                   </div>
                   <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
                     <p className="text-xs text-content-muted mb-1">平均</p>
@@ -541,12 +566,66 @@ export function RightPanel() {
                     </p>
                     <p className="text-xs text-content-faint">mm</p>
                   </div>
-                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center">
+                  <div className="bg-surface-elevated/50 rounded-lg p-3 text-center relative">
                     <p className="text-xs text-content-muted mb-1">最厚</p>
                     <p className="text-lg font-bold text-blue-400 font-mono">
                       {wallThicknessResult.maxThickness.toFixed(2)}
                     </p>
                     <p className="text-xs text-content-faint">mm</p>
+                    <button
+                      onClick={focusOnThickestPoint}
+                      className="absolute top-1 right-1 p-1 rounded hover:bg-surface-hover text-content-muted hover:text-blue-400 transition-colors"
+                      title="定位到最厚位置"
+                    >
+                      <Crosshair size={11} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={focusOnThinnestPoint}
+                    className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 transition-colors"
+                  >
+                    <Crosshair size={11} />
+                    定位最薄点
+                  </button>
+                  <button
+                    onClick={focusOnThickestPoint}
+                    className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 transition-colors"
+                  >
+                    <Crosshair size={11} />
+                    定位最厚点
+                  </button>
+                </div>
+
+                <div className="bg-surface-elevated/30 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Palette size={12} className="text-cyan-400" />
+                    <span className="text-xs text-content-muted">配色方案</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(['rainbow', 'coolwarm', 'grayscale'] as ThicknessColorScheme[]).map((scheme) => {
+                      const labels: Record<ThicknessColorScheme, string> = {
+                        rainbow: '彩虹',
+                        coolwarm: '冷暖',
+                        grayscale: '灰度',
+                      };
+                      const active = thicknessColorScheme === scheme;
+                      return (
+                        <button
+                          key={scheme}
+                          onClick={() => setThicknessColorScheme(scheme)}
+                          className={`text-[11px] px-2 py-1.5 rounded-md transition-colors font-medium ${
+                            active
+                              ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/50'
+                              : 'bg-surface-elevated/60 text-content-muted hover:bg-surface-elevated hover:text-content-secondary border border-transparent'
+                          }`}
+                        >
+                          {labels[scheme]}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -845,6 +924,16 @@ export function RightPanel() {
                         </p>
                         <p className="text-[10px] text-content-faint">mm</p>
                       </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-content-muted mb-2">壁厚曲线（沿截面轮廓）</p>
+                      <SectionThicknessCurve
+                        samples={sectionResult.thicknessSamples}
+                        minThickness={sectionResult.minThickness}
+                        maxThickness={sectionResult.maxThickness}
+                        avgThickness={sectionResult.avgThickness}
+                      />
                     </div>
 
                     <div>

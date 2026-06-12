@@ -3,12 +3,12 @@ import type {
   WallThicknessResult,
   WallThicknessSample,
   Vector3,
+  ThicknessColorScheme,
 } from '@/types';
 import {
   normalize,
   scale,
   add,
-  subtract,
   getFaceCentroid,
   computeFaceNormals,
   rayTriangleIntersect,
@@ -133,16 +133,57 @@ function computeThicknessDistribution(
 export function getThicknessColor(
   thickness: number,
   minThickness: number,
-  maxThickness: number
+  maxThickness: number,
+  scheme: ThicknessColorScheme = 'rainbow'
 ): { r: number; g: number; b: number } {
   if (maxThickness === minThickness) {
     return { r: 0.5, g: 0.5, b: 0.5 };
   }
 
-  const normalized = (thickness - minThickness) / (maxThickness - minThickness);
+  const t = Math.max(0, Math.min(1, (thickness - minThickness) / (maxThickness - minThickness)));
 
-  const hue = (1 - normalized) * 240;
+  switch (scheme) {
+    case 'rainbow':
+      return getRainbowColor(t);
+    case 'coolwarm':
+      return getCoolWarmColor(t);
+    case 'grayscale':
+      return getGrayscaleColor(t);
+    default:
+      return getRainbowColor(t);
+  }
+}
+
+function getRainbowColor(t: number): { r: number; g: number; b: number } {
+  const hue = (1 - t) * 240;
   return hslToRgb(hue / 360, 0.9, 0.5);
+}
+
+function getCoolWarmColor(t: number): { r: number; g: number; b: number } {
+  const cool = { r: 0.11, g: 0.42, b: 0.88 };
+  const warm = { r: 0.92, g: 0.26, b: 0.21 };
+  const mid = { r: 0.95, g: 0.95, b: 0.95 };
+
+  if (t < 0.5) {
+    const k = t * 2;
+    return {
+      r: cool.r + (mid.r - cool.r) * k,
+      g: cool.g + (mid.g - cool.g) * k,
+      b: cool.b + (mid.b - cool.b) * k,
+    };
+  } else {
+    const k = (t - 0.5) * 2;
+    return {
+      r: mid.r + (warm.r - mid.r) * k,
+      g: mid.g + (warm.g - mid.g) * k,
+      b: mid.b + (warm.b - mid.b) * k,
+    };
+  }
+}
+
+function getGrayscaleColor(t: number): { r: number; g: number; b: number } {
+  const v = 0.15 + t * 0.8;
+  return { r: v, g: v, b: v };
 }
 
 function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
@@ -168,4 +209,79 @@ function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: n
   }
 
   return { r, g, b };
+}
+
+export function getThicknessColorStops(scheme: ThicknessColorScheme = 'rainbow'): string[] {
+  const stops: string[] = [];
+  const steps = 9;
+  for (let i = 0; i < steps; i++) {
+    const t = 1 - i / (steps - 1);
+    const c = getThicknessColor(t, 0, 1, scheme);
+    const r = Math.round(c.r * 255);
+    const g = Math.round(c.g * 255);
+    const b = Math.round(c.b * 255);
+    stops.push(`rgb(${r}, ${g}, ${b})`);
+  }
+  return stops;
+}
+
+export function createThicknessVertexColors(
+  model: { vertices: Float32Array; indices: Uint32Array | Uint16Array },
+  result: WallThicknessResult,
+  scheme: ThicknessColorScheme = 'rainbow'
+): Float32Array {
+  const { vertices } = model;
+  const vertexCount = vertices.length / 3;
+  const colors = new Float32Array(vertexCount * 3);
+
+  const vertexThickness = new Float32Array(vertexCount);
+  const vertexWeight = new Float32Array(vertexCount);
+
+  for (const sample of result.samples) {
+    let nearestIdx = -1;
+    let nearestDist = Infinity;
+
+    for (let i = 0; i < vertexCount; i++) {
+      const dx = vertices[i * 3] - sample.x;
+      const dy = vertices[i * 3 + 1] - sample.y;
+      const dz = vertices[i * 3 + 2] - sample.z;
+      const d = dx * dx + dy * dy + dz * dz;
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestIdx = i;
+      }
+    }
+
+    if (nearestIdx >= 0) {
+      vertexThickness[nearestIdx] += sample.thickness;
+      vertexWeight[nearestIdx] += 1;
+    }
+  }
+
+  for (let i = 0; i < vertexCount; i++) {
+    let thickness: number;
+    if (vertexWeight[i] > 0) {
+      thickness = vertexThickness[i] / vertexWeight[i];
+    } else {
+      let nearestDist = Infinity;
+      thickness = result.avgThickness;
+      for (const sample of result.samples) {
+        const dx = vertices[i * 3] - sample.x;
+        const dy = vertices[i * 3 + 1] - sample.y;
+        const dz = vertices[i * 3 + 2] - sample.z;
+        const d = dx * dx + dy * dy + dz * dz;
+        if (d < nearestDist) {
+          nearestDist = d;
+          thickness = sample.thickness;
+        }
+      }
+    }
+
+    const c = getThicknessColor(thickness, result.minThickness, result.maxThickness, scheme);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+
+  return colors;
 }
