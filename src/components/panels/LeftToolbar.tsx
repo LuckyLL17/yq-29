@@ -17,12 +17,20 @@ import {
   PenTool,
   Box,
   Maximize2,
+  Plus,
+  Trash2,
+  Move,
+  Download,
+  Copy,
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { loadModelFromFile, createSampleBoxModel, createSampleBowlModel } from '@/utils/modelLoader';
 import { analyzeDraftAngles } from '@/utils/draftAngle';
 import { analyzeWallThickness } from '@/utils/wallThickness';
-import { planDrainHoles } from '@/utils/drainHoles';
+import { planDrainHoles, generateRectangleArray, generateCircleArray, exportToDXF, exportToCoordinates, downloadFile } from '@/utils/drainHoles';
 import { estimateMoldingCycle, MATERIAL_OPTIONS } from '@/utils/moldingCycle';
 import { computeSection, getPlaneBounds } from '@/utils/section';
 import { computeModelDiff } from '@/utils/modelDiff';
@@ -82,7 +90,19 @@ export function LeftToolbar() {
   const setHoleDiameter = useAppStore((state) => state.setHoleDiameter);
   const holeSpacing = useAppStore((state) => state.holeSpacing);
   const setHoleSpacing = useAppStore((state) => state.setHoleSpacing);
+  const holeDepth = useAppStore((state) => state.holeDepth);
+  const setHoleDepth = useAppStore((state) => state.setHoleDepth);
+  const holeEditMode = useAppStore((state) => state.holeEditMode);
+  const setHoleEditMode = useAppStore((state) => state.setHoleEditMode);
+  const collisionEnabled = useAppStore((state) => state.collisionEnabled);
+  const setCollisionEnabled = useAppStore((state) => state.setCollisionEnabled);
   const setDrainHoleResult = useAppStore((state) => state.setDrainHoleResult);
+  const addDrainHole = useAppStore((state) => state.addDrainHole);
+  const clearDrainHoles = useAppStore((state) => state.clearDrainHoles);
+  const addDrainHoles = useAppStore((state) => state.addDrainHoles);
+  const selectedHoleId = useAppStore((state) => state.selectedHoleId);
+  const setSelectedHoleId = useAppStore((state) => state.setSelectedHoleId);
+  const drainHoleResult = useAppStore((state) => state.drainHoleResult);
 
   const cycleParameters = useAppStore((state) => state.cycleParameters);
   const setCycleParameters = useAppStore((state) => state.setCycleParameters);
@@ -192,7 +212,7 @@ export function LeftToolbar() {
             break;
           }
           case 'holes': {
-            const result = planDrainHoles(model, holeDiameter, holeSpacing);
+            const result = planDrainHoles(model, holeDiameter, holeSpacing, holeDepth);
             setDrainHoleResult(result);
             break;
           }
@@ -434,43 +454,234 @@ export function LeftToolbar() {
         )}
 
         {analysisMode === 'holes' && (
-          <div className="pb-4 mb-4 border-b border-edge-subtle">
-            <h3 className="text-sm font-semibold text-content-secondary mb-3">滤水孔设置</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-content-muted block mb-1">
-                  孔径: {holeDiameter}mm
-                </label>
-                <input
-                  type="range"
-                  min="1"
-                  max="8"
-                  step="0.5"
-                  value={holeDiameter}
-                  onChange={(e) => setHoleDiameter(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-                />
+          <div className="pb-4 mb-4 border-b border-edge-subtle space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-content-secondary mb-3">滤水孔设置</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-content-muted block mb-1">
+                    孔径: {holeDiameter}mm
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="0.5"
+                    value={holeDiameter}
+                    onChange={(e) => setHoleDiameter(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-content-muted block mb-1">
+                    孔深: {holeDepth}mm
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="20"
+                    step="0.5"
+                    value={holeDepth}
+                    onChange={(e) => setHoleDepth(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-content-muted block mb-1">
+                    孔间距: {holeSpacing}mm
+                  </label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="50"
+                    step="1"
+                    value={holeSpacing}
+                    onChange={(e) => setHoleSpacing(parseInt(e.target.value))}
+                    className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                  />
+                </div>
+                <button
+                  onClick={() => runAnalysis('holes')}
+                  className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
+                >
+                  自动规划
+                </button>
               </div>
-              <div>
-                <label className="text-xs text-content-muted block mb-1">
-                  孔间距: {holeSpacing}mm
-                </label>
-                <input
-                  type="range"
-                  min="5"
-                  max="40"
-                  step="1"
-                  value={holeSpacing}
-                  onChange={(e) => setHoleSpacing(parseInt(e.target.value))}
-                  className="w-full h-2 bg-surface-active rounded-lg appearance-none cursor-pointer accent-cyan-500"
-                />
+            </div>
+
+            <div className="pt-3 border-t border-edge-subtle">
+              <h4 className="text-xs font-medium text-content-secondary mb-2 flex items-center gap-1.5">
+                <PenTool size={12} className="text-purple-400" />
+                手动编辑
+              </h4>
+              <div className="grid grid-cols-4 gap-1.5 mb-3">
+                {[
+                  { id: 'none', label: '选择', icon: CircleDot },
+                  { id: 'add', label: '添加', icon: Plus },
+                  { id: 'delete', label: '删除', icon: Trash2 },
+                  { id: 'move', label: '移动', icon: Move },
+                ].map((tool) => {
+                  const Icon = tool.icon;
+                  const isActive = holeEditMode === tool.id;
+                  return (
+                    <button
+                      key={tool.id}
+                      onClick={() => setHoleEditMode(tool.id as any)}
+                      className={`flex flex-col items-center gap-1 py-2 rounded-lg transition-all text-[10px] ${
+                        isActive
+                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                          : 'bg-surface-elevated/50 text-content-muted border border-transparent hover:bg-surface-elevated hover:text-content-secondary'
+                      }`}
+                    >
+                      <Icon size={14} />
+                      {tool.label}
+                    </button>
+                  );
+                })}
               </div>
-              <button
-                onClick={() => runAnalysis('holes')}
-                className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm rounded-lg transition-colors"
-              >
-                重新计算
-              </button>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-content-muted flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={collisionEnabled}
+                    onChange={(e) => setCollisionEnabled(e.target.checked)}
+                    className="accent-cyan-500"
+                  />
+                  碰撞检测
+                </label>
+                <button
+                  onClick={() => {
+                    if (confirm('确定要清空所有滤水孔吗？')) {
+                      clearDrainHoles();
+                    }
+                  }}
+                  disabled={!drainHoleResult || drainHoleResult.holes.length === 0}
+                  className="text-[10px] px-2 py-1 rounded bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  清空全部
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-edge-subtle">
+              <h4 className="text-xs font-medium text-content-secondary mb-2 flex items-center gap-1.5">
+                <Grid3X3 size={12} className="text-orange-400" />
+                阵列生成
+              </h4>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    if (!model) {
+                      alert('请先导入模型');
+                      return;
+                    }
+                    const center = {
+                      x: model.boundingBox.center.x,
+                      y: model.boundingBox.max.y - 5,
+                      z: model.boundingBox.center.z,
+                    };
+                    const holes = generateRectangleArray({
+                      type: 'rectangle',
+                      center,
+                      normal: { x: 0, y: 1, z: 0 },
+                      xCount: 5,
+                      yCount: 4,
+                      xSpacing: holeSpacing,
+                      ySpacing: holeSpacing,
+                      diameter: holeDiameter,
+                      depth: holeDepth,
+                      holeType: 'dewatering',
+                    });
+                    if (collisionEnabled && drainHoleResult) {
+                      const validHoles = holes.filter(
+                        (h) =>
+                          !drainHoleResult.holes.some(
+                            (existing) =>
+                              Math.sqrt(
+                                Math.pow(h.position.x - existing.position.x, 2) +
+                                  Math.pow(h.position.z - existing.position.z, 2)
+                              ) <
+                              (h.diameter + existing.diameter) / 2 + 1
+                          )
+                      );
+                      addDrainHoles(validHoles);
+                    } else {
+                      addDrainHoles(holes);
+                    }
+                  }}
+                  className="w-full py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors flex items-center justify-center gap-2 border border-edge-subtle"
+                >
+                  <Grid3X3 size={12} />
+                  矩形阵列 (5×4)
+                </button>
+                <button
+                  onClick={() => {
+                    if (!model) {
+                      alert('请先导入模型');
+                      return;
+                    }
+                    const center = {
+                      x: model.boundingBox.center.x,
+                      y: model.boundingBox.max.y - 5,
+                      z: model.boundingBox.center.z,
+                    };
+                    const holes = generateCircleArray({
+                      type: 'circle',
+                      center,
+                      normal: { x: 0, y: 1, z: 0 },
+                      radius: 30,
+                      count: 12,
+                      diameter: holeDiameter,
+                      depth: holeDepth,
+                      holeType: 'dewatering',
+                    });
+                    addDrainHoles(holes);
+                  }}
+                  className="w-full py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors flex items-center justify-center gap-2 border border-edge-subtle"
+                >
+                  <CircleDot size={12} />
+                  环形阵列 (12孔)
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-edge-subtle">
+              <h4 className="text-xs font-medium text-content-secondary mb-2 flex items-center gap-1.5">
+                <Download size={12} className="text-green-400" />
+                导出
+              </h4>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    if (!drainHoleResult || drainHoleResult.holes.length === 0) {
+                      alert('没有可导出的滤水孔');
+                      return;
+                    }
+                    const dxfContent = exportToDXF(drainHoleResult.holes);
+                    downloadFile(dxfContent, '滤水孔.dxf', 'application/dxf');
+                  }}
+                  disabled={!drainHoleResult || drainHoleResult.holes.length === 0}
+                  className="py-2 bg-green-500/15 hover:bg-green-500/25 text-green-400 text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 border border-green-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Download size={12} />
+                  DXF
+                </button>
+                <button
+                  onClick={() => {
+                    if (!drainHoleResult || drainHoleResult.holes.length === 0) {
+                      alert('没有可导出的滤水孔');
+                      return;
+                    }
+                    const coordsContent = exportToCoordinates(drainHoleResult.holes);
+                    downloadFile(coordsContent, '滤水孔坐标.csv', 'text/csv');
+                  }}
+                  disabled={!drainHoleResult || drainHoleResult.holes.length === 0}
+                  className="py-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 border border-blue-500/30 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Copy size={12} />
+                  坐标列
+                </button>
+              </div>
             </div>
           </div>
         )}

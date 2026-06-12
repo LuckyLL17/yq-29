@@ -22,6 +22,10 @@ import {
   ChevronDown,
   Crosshair,
   Palette,
+  Plus,
+  Trash2,
+  Edit3,
+  Settings,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { ThicknessColorScheme } from '@/types';
@@ -49,6 +53,11 @@ export function RightPanel() {
   const focusOnThinnestPoint = useAppStore((state) => state.focusOnThinnestPoint);
   const focusOnThickestPoint = useAppStore((state) => state.focusOnThickestPoint);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
+  const selectedHoleId = useAppStore((state) => state.selectedHoleId);
+  const setSelectedHoleId = useAppStore((state) => state.setSelectedHoleId);
+  const updateDrainHole = useAppStore((state) => state.updateDrainHole);
+  const removeDrainHole = useAppStore((state) => state.removeDrainHole);
+  const setCameraFocusTarget = useAppStore((state) => state.setCameraFocusTarget);
   const cycleResult = useAppStore((state) => state.cycleResult);
   const sectionResult = useAppStore((state) => state.sectionResult);
   const sectionPlane = useAppStore((state) => state.sectionPlane);
@@ -668,9 +677,14 @@ export function RightPanel() {
 
         {analysisMode === 'holes' && (
           <div className="p-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <CircleDot size={16} className="text-purple-400" />
-              <h4 className="text-sm font-medium text-content-secondary">滤水孔规划</h4>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CircleDot size={16} className="text-purple-400" />
+                <h4 className="text-sm font-medium text-content-secondary">滤水孔规划</h4>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-400 rounded-full">
+                {drainHoleResult?.totalCount || 0} 个
+              </span>
             </div>
 
             {drainHoleResult ? (
@@ -720,6 +734,210 @@ export function RightPanel() {
                       className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2 rounded-full"
                       style={{ width: `${Math.min(drainHoleResult.recommendedDensity * 10, 100)}%` }}
                     />
+                  </div>
+                </div>
+
+                {selectedHoleId && (
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-xs font-medium text-purple-400 flex items-center gap-1.5">
+                        <Edit3 size={12} />
+                        孔参数编辑
+                      </h5>
+                      <button
+                        onClick={() => setSelectedHoleId(null)}
+                        className="text-[10px] text-content-muted hover:text-content-secondary transition-colors"
+                      >
+                        关闭
+                      </button>
+                    </div>
+                    {(() => {
+                      const hole = drainHoleResult.holes.find((h) => h.id === selectedHoleId);
+                      if (!hole) return null;
+                      return (
+                        <>
+                          <div>
+                            <label className="text-[10px] text-content-muted block mb-1">
+                              直径: {hole.diameter.toFixed(1)} mm
+                            </label>
+                            <input
+                              type="range"
+                              min="1"
+                              max="10"
+                              step="0.5"
+                              value={hole.diameter}
+                              onChange={(e) => {
+                                updateDrainHole(selectedHoleId, {
+                                  diameter: parseFloat(e.target.value),
+                                });
+                              }}
+                              className="w-full h-1.5 bg-surface-active rounded-lg appearance-none cursor-pointer accent-purple-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-content-muted block mb-1">
+                              深度: {hole.depth.toFixed(1)} mm
+                            </label>
+                            <input
+                              type="range"
+                              min="1"
+                              max="20"
+                              step="0.5"
+                              value={hole.depth}
+                              onChange={(e) => {
+                                updateDrainHole(selectedHoleId, {
+                                  depth: parseFloat(e.target.value),
+                                });
+                              }}
+                              className="w-full h-1.5 bg-surface-active rounded-lg appearance-none cursor-pointer accent-purple-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-content-muted block mb-1.5">
+                              孔类型
+                            </label>
+                            <div className="flex gap-2">
+                              {[
+                                { id: 'dewatering', label: '脱水孔' },
+                                { id: 'suction', label: '吸水孔' },
+                              ].map((type) => (
+                                <button
+                                  key={type.id}
+                                  onClick={() => {
+                                    updateDrainHole(selectedHoleId, {
+                                      type: type.id as any,
+                                    });
+                                  }}
+                                  className={`flex-1 py-1.5 text-[10px] rounded transition-colors ${
+                                    hole.type === type.id
+                                      ? type.id === 'suction'
+                                        ? 'bg-orange-500/25 text-orange-400 border border-orange-500/50'
+                                        : 'bg-cyan-500/25 text-cyan-400 border border-cyan-500/50'
+                                      : 'bg-surface-elevated/60 text-content-muted hover:bg-surface-elevated border border-transparent'
+                                  }`}
+                                >
+                                  {type.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-[10px]">
+                            <div className="bg-surface-inset/50 rounded px-2 py-1.5">
+                              <span className="text-content-muted">X</span>
+                              <p className="text-content-secondary font-mono mt-0.5">
+                                {hole.position.x.toFixed(1)}
+                              </p>
+                            </div>
+                            <div className="bg-surface-inset/50 rounded px-2 py-1.5">
+                              <span className="text-content-muted">Y</span>
+                              <p className="text-content-secondary font-mono mt-0.5">
+                                {hole.position.y.toFixed(1)}
+                              </p>
+                            </div>
+                            <div className="bg-surface-inset/50 rounded px-2 py-1.5">
+                              <span className="text-content-muted">Z</span>
+                              <p className="text-content-secondary font-mono mt-0.5">
+                                {hole.position.z.toFixed(1)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                setCameraFocusTarget({ ...hole.position });
+                              }}
+                              className="flex-1 py-1.5 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-400 text-[10px] rounded transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Crosshair size={10} />
+                              定位
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm('确定删除该滤水孔？')) {
+                                  removeDrainHole(selectedHoleId);
+                                }
+                              }}
+                              className="flex-1 py-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 text-[10px] rounded transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Trash2 size={10} />
+                              删除
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h5 className="text-xs font-medium text-content-secondary flex items-center gap-1.5">
+                      <Settings size={12} className="text-purple-400" />
+                      孔列表
+                    </h5>
+                    <span className="text-[10px] text-content-muted">
+                      点击选中编辑
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                    {drainHoleResult.holes.map((hole, index) => {
+                      const isSelected = selectedHoleId === hole.id;
+                      return (
+                        <div
+                          key={hole.id}
+                          onClick={() => {
+                            setSelectedHoleId(isSelected ? null : hole.id);
+                          }}
+                          className={`rounded-lg p-2.5 cursor-pointer transition-all border ${
+                            isSelected
+                              ? 'bg-purple-500/15 border-purple-500/50'
+                              : 'bg-surface-elevated/30 border-transparent hover:bg-surface-elevated/50 hover:border-edge-subtle'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-3 h-3 rounded-full ${
+                                  hole.type === 'suction' ? 'bg-orange-500' : 'bg-cyan-500'
+                                }`}
+                              />
+                              <span className="text-xs font-medium text-content-secondary font-mono">
+                                #{index + 1}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-content-muted">
+                              {hole.type === 'suction' ? '吸水孔' : '脱水孔'}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-[10px]">
+                            <div>
+                              <span className="text-content-muted">直径</span>
+                              <p className="text-content-secondary font-mono">
+                                {hole.diameter.toFixed(1)}mm
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-content-muted">深度</span>
+                              <p className="text-content-secondary font-mono">
+                                {hole.depth.toFixed(1)}mm
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCameraFocusTarget({ ...hole.position });
+                                }}
+                                className="p-1 rounded hover:bg-surface-hover text-content-muted hover:text-cyan-400 transition-colors"
+                                title="定位到该孔"
+                              >
+                                <Crosshair size={10} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </>

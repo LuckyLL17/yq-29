@@ -1,9 +1,11 @@
 import { create } from 'zustand';
+import { estimateSurfaceArea } from '@/utils/drainHoles';
 import type {
   ModelData,
   DraftAngleResult,
   WallThicknessResult,
   DrainHoleResult,
+  DrainHole,
   MoldingCycleResult,
   MoldingCycleParameters,
   AnalysisMode,
@@ -21,6 +23,7 @@ import type {
   LayerSplitStrategy,
   LayerSplitAxis,
   ThicknessColorScheme,
+  HoleEditMode,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -58,6 +61,10 @@ interface AppState {
   drainHoleResult: DrainHoleResult | null;
   holeDiameter: number;
   holeSpacing: number;
+  holeDepth: number;
+  selectedHoleId: string | null;
+  holeEditMode: HoleEditMode;
+  collisionEnabled: boolean;
 
   cycleParameters: MoldingCycleParameters;
   cycleResult: MoldingCycleResult | null;
@@ -111,6 +118,15 @@ interface AppState {
   setDrainHoleResult: (result: DrainHoleResult | null) => void;
   setHoleDiameter: (diameter: number) => void;
   setHoleSpacing: (spacing: number) => void;
+  setHoleDepth: (depth: number) => void;
+  setSelectedHoleId: (id: string | null) => void;
+  setHoleEditMode: (mode: HoleEditMode) => void;
+  setCollisionEnabled: (enabled: boolean) => void;
+  addDrainHole: (hole: Partial<DrainHole>) => void;
+  removeDrainHole: (id: string) => void;
+  updateDrainHole: (id: string, updates: Partial<DrainHole>) => void;
+  addDrainHoles: (holes: DrainHole[]) => void;
+  clearDrainHoles: () => void;
 
   setCycleParameters: (params: Partial<MoldingCycleParameters>) => void;
   setCycleResult: (result: MoldingCycleResult | null) => void;
@@ -197,6 +213,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   drainHoleResult: null,
   holeDiameter: 2,
   holeSpacing: 15,
+  holeDepth: 5,
+  selectedHoleId: null,
+  holeEditMode: 'none',
+  collisionEnabled: true,
 
   cycleParameters: {
     materialType: '甘蔗浆',
@@ -455,6 +475,129 @@ export const useAppStore = create<AppState>((set, get) => ({
   setDrainHoleResult: (result) => set({ drainHoleResult: result }),
   setHoleDiameter: (diameter) => set({ holeDiameter: diameter }),
   setHoleSpacing: (spacing) => set({ holeSpacing: spacing }),
+  setHoleDepth: (depth) => set({ holeDepth: depth }),
+  setSelectedHoleId: (id) => set({ selectedHoleId: id }),
+  setHoleEditMode: (mode) => set({ holeEditMode: mode }),
+  setCollisionEnabled: (enabled) => set({ collisionEnabled: enabled }),
+  addDrainHole: (hole) =>
+    set((state) => {
+      const currentResult = state.drainHoleResult;
+      const model = state.model;
+      if (!currentResult) {
+        const newHole: DrainHole = {
+          id: `hole-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          position: hole.position || { x: 0, y: 0, z: 0 },
+          normal: hole.normal || { x: 0, y: 1, z: 0 },
+          diameter: hole.diameter || state.holeDiameter,
+          type: hole.type || 'dewatering',
+          depth: hole.depth || state.holeDepth,
+        };
+        return {
+          drainHoleResult: {
+            holes: [newHole],
+            totalCount: 1,
+            totalArea: Math.PI * Math.pow(newHole.diameter / 2, 2),
+            suctionCount: newHole.type === 'suction' ? 1 : 0,
+            dewateringCount: newHole.type === 'dewatering' ? 1 : 0,
+            recommendedDensity: 0,
+          },
+        };
+      }
+      const newHole: DrainHole = {
+        id: `hole-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        position: hole.position || { x: 0, y: 0, z: 0 },
+        normal: hole.normal || { x: 0, y: 1, z: 0 },
+        diameter: hole.diameter || state.holeDiameter,
+        type: hole.type || 'dewatering',
+        depth: hole.depth || state.holeDepth,
+      };
+      const newHoles = [...currentResult.holes, newHole];
+      const totalArea = newHoles.reduce(
+        (sum, h) => sum + Math.PI * Math.pow(h.diameter / 2, 2),
+        0
+      );
+      return {
+        drainHoleResult: {
+          ...currentResult,
+          holes: newHoles,
+          totalCount: newHoles.length,
+          totalArea,
+          suctionCount: newHoles.filter((h) => h.type === 'suction').length,
+          dewateringCount: newHoles.filter((h) => h.type === 'dewatering').length,
+        },
+      };
+    }),
+  removeDrainHole: (id) =>
+    set((state) => {
+      const currentResult = state.drainHoleResult;
+      if (!currentResult) return {};
+      const newHoles = currentResult.holes.filter((h) => h.id !== id);
+      const totalArea = newHoles.reduce(
+        (sum, h) => sum + Math.PI * Math.pow(h.diameter / 2, 2),
+        0
+      );
+      return {
+        drainHoleResult: {
+          ...currentResult,
+          holes: newHoles,
+          totalCount: newHoles.length,
+          totalArea,
+          suctionCount: newHoles.filter((h) => h.type === 'suction').length,
+          dewateringCount: newHoles.filter((h) => h.type === 'dewatering').length,
+        },
+        selectedHoleId: state.selectedHoleId === id ? null : state.selectedHoleId,
+      };
+    }),
+  updateDrainHole: (id, updates) =>
+    set((state) => {
+      const currentResult = state.drainHoleResult;
+      if (!currentResult) return {};
+      const newHoles = currentResult.holes.map((h) =>
+        h.id === id ? { ...h, ...updates } : h
+      );
+      const totalArea = newHoles.reduce(
+        (sum, h) => sum + Math.PI * Math.pow(h.diameter / 2, 2),
+        0
+      );
+      return {
+        drainHoleResult: {
+          ...currentResult,
+          holes: newHoles,
+          totalCount: newHoles.length,
+          totalArea,
+          suctionCount: newHoles.filter((h) => h.type === 'suction').length,
+          dewateringCount: newHoles.filter((h) => h.type === 'dewatering').length,
+        },
+      };
+    }),
+  addDrainHoles: (holes) =>
+    set((state) => {
+      const currentResult = state.drainHoleResult;
+      const newHoles = currentResult
+        ? [...currentResult.holes, ...holes]
+        : holes;
+      const totalArea = newHoles.reduce(
+        (sum, h) => sum + Math.PI * Math.pow(h.diameter / 2, 2),
+        0
+      );
+      const modelSurfaceArea = state.model ? estimateSurfaceArea(state.model) : 1;
+      return {
+        drainHoleResult: {
+          holes: newHoles,
+          totalCount: newHoles.length,
+          totalArea,
+          suctionCount: newHoles.filter((h) => h.type === 'suction').length,
+          dewateringCount: newHoles.filter((h) => h.type === 'dewatering').length,
+          recommendedDensity: (totalArea / modelSurfaceArea) * 100,
+        },
+      };
+    }),
+  clearDrainHoles: () =>
+    set({
+      drainHoleResult: null,
+      selectedHoleId: null,
+      holeEditMode: 'none',
+    }),
 
   setCycleParameters: (params) =>
     set((state) => ({ cycleParameters: { ...state.cycleParameters, ...params } })),

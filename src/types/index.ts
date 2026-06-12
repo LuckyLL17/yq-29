@@ -89,6 +89,7 @@ export interface DrainHole {
   normal: Vector3;
   diameter: number;
   type: DrainHoleType;
+  depth: number;
 }
 
 export interface DrainHoleResult {
@@ -99,6 +100,44 @@ export interface DrainHoleResult {
   dewateringCount: number;
   recommendedDensity: number;
 }
+
+export type ArrayPatternType = 'rectangle' | 'circle';
+
+export interface RectangleArrayParams {
+  type: 'rectangle';
+  center: Vector3;
+  normal: Vector3;
+  xCount: number;
+  yCount: number;
+  xSpacing: number;
+  ySpacing: number;
+  diameter: number;
+  depth: number;
+  holeType: DrainHoleType;
+}
+
+export interface CircleArrayParams {
+  type: 'circle';
+  center: Vector3;
+  normal: Vector3;
+  radius: number;
+  count: number;
+  diameter: number;
+  depth: number;
+  holeType: DrainHoleType;
+}
+
+export type ArrayParams = RectangleArrayParams | CircleArrayParams;
+
+export type HoleExportFormat = 'dxf' | 'coords';
+
+export interface CollisionCheckResult {
+  hasCollision: boolean;
+  collidingHoles: string[];
+  minDistance: number;
+}
+
+export type HoleEditMode = 'none' | 'add' | 'move' | 'delete' | 'edit';
 
 export interface MoldingCycleParameters {
   materialType: string;
