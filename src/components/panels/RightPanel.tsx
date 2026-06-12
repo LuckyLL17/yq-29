@@ -132,7 +132,7 @@ export function RightPanel() {
   };
 
   return (
-    <div className="w-80 h-full bg-surface-panel border-l border-edge-base flex flex-col overflow-hidden">
+    <div className="w-full h-full bg-surface-panel flex flex-col overflow-hidden">
       <div className="p-4 border-b border-edge-subtle flex items-center justify-between">
         <h3 className="text-sm font-semibold text-content-secondary">分析结果</h3>
         <button

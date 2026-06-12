@@ -5,6 +5,8 @@ import { EffectComposer, Bloom, SSAO } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { useAppStore } from '@/store/useAppStore';
 import { ModelMesh } from './ModelMesh';
+import { LayeredModelMesh } from './LayeredModelMesh';
+import { splitModel } from '@/utils/layerSplitter';
 import { DiffModelMesh } from './DiffModelMesh';
 import { DiffColorLegend } from './DiffColorLegend';
 import { DrainHolesDisplay } from './DrainHolesDisplay';
@@ -331,10 +333,25 @@ function Scene() {
   const showGrid = useAppStore((state) => state.showGrid);
   const showAxes = useAppStore((state) => state.showAxes);
   const autoRotate = useAppStore((state) => state.autoRotate);
+  const layersEnabled = useAppStore((state) => state.layersEnabled);
+  const modelLayers = useAppStore((state) => state.modelLayers);
+  const layerSplitStrategy = useAppStore((state) => state.layerSplitStrategy);
+  const setModelLayers = useAppStore((state) => state.setModelLayers);
 
   const displayModel = model || createSampleBoxModel();
 
   const controlsRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (layersEnabled && displayModel && modelLayers.length === 0) {
+      try {
+        const layers = splitModel(displayModel, layerSplitStrategy);
+        setModelLayers(layers);
+      } catch (e) {
+        console.error('Failed to split model:', e);
+      }
+    }
+  }, [layersEnabled, displayModel, layerSplitStrategy, modelLayers.length, setModelLayers]);
 
   useEffect(() => {
     if (analysisMode === 'section' && displayModel && sectionPlane.visible) {
@@ -358,13 +375,23 @@ function Scene() {
       <pointLight position={[0, 80, 0]} intensity={0.3} color="#06b6d4" />
 
       <group>
-        <ModelMesh
-          model={{
-            vertices: displayModel.vertices,
-            indices: displayModel.indices,
-            normals: displayModel.normals,
-          }}
-        />
+        {layersEnabled ? (
+          <LayeredModelMesh
+            model={{
+              vertices: displayModel.vertices,
+              indices: displayModel.indices,
+              normals: displayModel.normals,
+            }}
+          />
+        ) : (
+          <ModelMesh
+            model={{
+              vertices: displayModel.vertices,
+              indices: displayModel.indices,
+              normals: displayModel.normals,
+            }}
+          />
+        )}
 
         {analysisMode === 'holes' && drainHoleResult && (
           <DrainHolesDisplay holes={drainHoleResult.holes} />

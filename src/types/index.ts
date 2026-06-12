@@ -187,3 +187,36 @@ export interface SectionResult {
   thicknessDistribution: { range: string; count: number; percentage: number }[];
   plane: SectionPlane;
 }
+
+export type LayerSplitAxis = 'x' | 'y' | 'z';
+
+export type LayerSplitStrategy =
+  | { type: 'axis'; axis: LayerSplitAxis; count: number }
+  | { type: 'manual'; boundaries: number[]; axis: LayerSplitAxis };
+
+export interface ModelLayerGeometry {
+  vertices: Float32Array;
+  indices: Uint32Array | Uint16Array;
+  normals: Float32Array;
+  faceCount: number;
+  vertexCount: number;
+}
+
+export interface ModelLayer {
+  id: string;
+  name: string;
+  index: number;
+  geometry: ModelLayerGeometry;
+  color: string;
+  opacity: number;
+  visible: boolean;
+  explosionOffset: Vector3;
+  boundingBox: BoundingBox;
+}
+
+export interface LayerState {
+  layers: ModelLayer[];
+  splitStrategy: LayerSplitStrategy;
+  explosionAmount: number;
+  isExploded: boolean;
+}

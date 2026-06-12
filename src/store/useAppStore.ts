@@ -17,6 +17,9 @@ import type {
   Annotation,
   AnnotationTool,
   AnnotationStyle,
+  ModelLayer,
+  LayerSplitStrategy,
+  LayerSplitAxis,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -123,6 +126,28 @@ interface AppState {
   confirmTextAnnotation: (text: string) => void;
 
   resetAnalysis: () => void;
+
+  modelLayers: ModelLayer[];
+  layerSplitStrategy: LayerSplitStrategy;
+  layerExplosionAmount: number;
+  isLayerExploded: boolean;
+  layersEnabled: boolean;
+
+  setLayersEnabled: (enabled: boolean) => void;
+  setModelLayers: (layers: ModelLayer[]) => void;
+  setLayerSplitStrategy: (strategy: LayerSplitStrategy) => void;
+  updateLayer: (id: string, updates: Partial<ModelLayer>) => void;
+  setLayerVisibility: (id: string, visible: boolean) => void;
+  setLayerOpacity: (id: string, opacity: number) => void;
+  setLayerColor: (id: string, color: string) => void;
+  setLayerExplosionAmount: (amount: number) => void;
+  setIsLayerExploded: (exploded: boolean) => void;
+  toggleLayerVisibility: (id: string) => void;
+  showAllLayers: () => void;
+  hideAllLayers: () => void;
+  resetLayerColors: () => void;
+  resetLayers: () => void;
+  explodeLayersByAxis: (axis: LayerSplitAxis) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -189,6 +214,161 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   sectionResult: null,
   sectionThicknessResolution: 50,
+
+  modelLayers: [],
+  layerSplitStrategy: { type: 'axis', axis: 'y', count: 4 },
+  layerExplosionAmount: 20,
+  isLayerExploded: false,
+  layersEnabled: false,
+
+  setLayersEnabled: (enabled) => set({ layersEnabled: enabled }),
+  setModelLayers: (layers) => set({ modelLayers: layers }),
+  setLayerSplitStrategy: (strategy) => set({ layerSplitStrategy: strategy }),
+  updateLayer: (id, updates) =>
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer) =>
+        layer.id === id ? { ...layer, ...updates } : layer,
+    })),
+  setLayerVisibility: (id, visible) =>
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer) =>
+        layer.id === id ? { ...layer, visible } : layer,
+    })),
+  setLayerOpacity: (id, opacity) =>
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer) =>
+        layer.id === id ? { ...layer, opacity } : layer,
+    })),
+  setLayerColor: (id, color) =>
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer) =>
+        layer.id === id ? { ...layer, color } : layer,
+    })),
+  setLayerExplosionAmount: (amount) => {
+    set({ layerExplosionAmount: amount });
+    const isLayerExploded = get().isLayerExploded;
+    if (isLayerExploded) {
+      const model = get().model;
+      if (model) {
+        const strategy = get().layerSplitStrategy;
+        const layers = get().modelLayers;
+        const axis = strategy.axis;
+        const center = model.boundingBox.center;
+        set({
+          modelLayers: layers.map((layer) => {
+            const layerCenter = layer.boundingBox.center;
+            const dir = {
+              x: layerCenter.x - center.x,
+              y: layerCenter.y - center.y,
+              z: layerCenter.z - center.z,
+            };
+            const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1;
+            const norm = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
+            const offsetAxis = {
+              x: axis === 'x' ? norm.x * amount : 0,
+              y: axis === 'y' ? norm.y * amount : 0,
+              z: axis === 'z' ? norm.z * amount : 0,
+            };
+            return { ...layer, explosionOffset: offsetAxis };
+          }),
+        });
+      }
+    }
+  },
+  setIsLayerExploded: (exploded) => {
+    const amount = get().layerExplosionAmount;
+    const model = get().model;
+    const strategy = get().layerSplitStrategy;
+    const layers = get().modelLayers;
+    if (exploded && model) {
+      const axis = strategy.axis;
+      const center = model.boundingBox.center;
+      set({
+        isLayerExploded: true,
+        modelLayers: layers.map((layer) => {
+          const layerCenter = layer.boundingBox.center;
+          const dir = {
+            x: layerCenter.x - center.x,
+            y: layerCenter.y - center.y,
+            z: layerCenter.z - center.z,
+          };
+          const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1;
+          const norm = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
+          const offsetAxis = {
+            x: axis === 'x' ? norm.x * amount : 0,
+            y: axis === 'y' ? norm.y * amount : 0,
+            z: axis === 'z' ? norm.z * amount : 0,
+          };
+          return { ...layer, explosionOffset: offsetAxis };
+        }),
+      });
+    } else {
+      set({
+        isLayerExploded: false,
+        modelLayers: layers.map((layer) => ({
+          ...layer,
+          explosionOffset: { x: 0, y: 0, z: 0 },
+        })),
+      });
+    }
+  },
+  toggleLayerVisibility: (id) =>
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer) =>
+        layer.id === id ? { ...layer, visible: !layer.visible } : layer,
+    })),
+  showAllLayers: () =>
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer) => ({ ...layer, visible: true }),
+    })),
+  hideAllLayers: () =>
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer) => ({ ...layer, visible: false }),
+    })),
+  resetLayerColors: () => {
+    const palette = ['#6b8e9e', '#e07a5f', '#81b29a', '#f2cc8f', '#3d405b', '#e07a9a', '#56a3a6', '#c8b6ff', '#f0a88a', '#45b7d1', '#96ceb4', '#ffeaa7'];
+    set((state) => ({
+      modelLayers: state.modelLayers.map((layer, i) => ({
+        ...layer,
+        color: palette[i % palette.length],
+      })),
+    }));
+  },
+  resetLayers: () =>
+    set({
+      modelLayers: [],
+      layerExplosionAmount: 20,
+      isLayerExploded: false,
+      layersEnabled: false,
+    }),
+  explodeLayersByAxis: (axis) => {
+    const amount = get().layerExplosionAmount;
+    const model = get().model;
+    const layers = get().modelLayers;
+    if (model && layers.length > 0) {
+      const center = model.boundingBox.center;
+      set({
+        isLayerExploded: true,
+        layerSplitStrategy: { ...get().layerSplitStrategy, axis },
+        modelLayers: layers.map((layer) => {
+          const layerCenter = layer.boundingBox.center;
+          const dir = {
+            x: layerCenter.x - center.x,
+            y: layerCenter.y - center.y,
+            z: layerCenter.z - center.z,
+          };
+          const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z) || 1;
+          const norm = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
+          const offsetAxis = {
+            x: axis === 'x' ? norm.x * amount : 0,
+            y: axis === 'y' ? norm.y * amount : 0,
+            z: axis === 'z' ? norm.z * amount : 0,
+          };
+          return { ...layer, explosionOffset: offsetAxis };
+        }),
+      });
+    }
+  },
 
   setModel: (model, fileName = '') =>
     set({ model, modelFileName: fileName, draftAngleResult: null, wallThicknessResult: null, drainHoleResult: null, cycleResult: null, sectionResult: null, modelDiffResult: null }),

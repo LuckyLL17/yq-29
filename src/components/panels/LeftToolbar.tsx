@@ -15,6 +15,8 @@ import {
   GitCompare,
   Palette,
   PenTool,
+  Box,
+  Maximize2,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { loadModelFromFile, createSampleBoxModel, createSampleBowlModel } from '@/utils/modelLoader';
@@ -24,8 +26,9 @@ import { planDrainHoles } from '@/utils/drainHoles';
 import { estimateMoldingCycle, MATERIAL_OPTIONS } from '@/utils/moldingCycle';
 import { computeSection, getPlaneBounds } from '@/utils/section';
 import { computeModelDiff } from '@/utils/modelDiff';
+import { splitModel } from '@/utils/layerSplitter';
 import { AnnotationPanel } from './AnnotationPanel';
-import type { AnalysisMode, VisualizationMode, SectionAxis, CompareMode } from '@/types';
+import type { AnalysisMode, VisualizationMode, SectionAxis, CompareMode, LayerSplitAxis } from '@/types';
 
 const tools = [
   { id: 'draft', label: '脱模角度', icon: MoveUp },
@@ -98,6 +101,16 @@ export function LeftToolbar() {
   const setShowAxes = useAppStore((state) => state.setShowAxes);
   const autoRotate = useAppStore((state) => state.autoRotate);
   const setAutoRotate = useAppStore((state) => state.setAutoRotate);
+
+  const layersEnabled = useAppStore((state) => state.layersEnabled);
+  const setLayersEnabled = useAppStore((state) => state.setLayersEnabled);
+  const setModelLayers = useAppStore((state) => state.setModelLayers);
+  const layerSplitStrategy = useAppStore((state) => state.layerSplitStrategy);
+  const setLayerSplitStrategy = useAppStore((state) => state.setLayerSplitStrategy);
+  const isLayerExploded = useAppStore((state) => state.isLayerExploded);
+  const setIsLayerExploded = useAppStore((state) => state.setIsLayerExploded);
+  const explodeLayersByAxis = useAppStore((state) => state.explodeLayersByAxis);
+  const resetLayers = useAppStore((state) => state.resetLayers);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -810,6 +823,154 @@ export function LeftToolbar() {
 
         <div className="mb-5 pb-4 border-b border-edge-subtle">
           <AnnotationPanel />
+        </div>
+
+        <div className="mb-5 pb-4 border-b border-edge-subtle">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-content-secondary flex items-center gap-2">
+              <Box size={16} className="text-purple-400" />
+              图层模式
+            </h3>
+            <button
+              onClick={() => {
+                if (layersEnabled) {
+                  resetLayers();
+                } else if (model) {
+                  try {
+                    const layers = splitModel(model, layerSplitStrategy);
+                    setModelLayers(layers);
+                    setLayersEnabled(true);
+                  } catch (e) {
+                    console.error('Failed to split:', e);
+                  }
+                } else {
+                  try {
+                    const sampleModel = createSampleBoxModel();
+                    const layers = splitModel(sampleModel, layerSplitStrategy);
+                    setModelLayers(layers);
+                    setLayersEnabled(true);
+                  } catch (e) {
+                    console.error('Failed to split:', e);
+                  }
+                }
+              }}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                layersEnabled
+                  ? 'bg-purple-500 text-white shadow-md shadow-purple-500/30'
+                  : 'bg-surface-elevated text-content-muted hover:text-content-secondary border border-edge-subtle hover:border-purple-500/30'
+              }`}
+            >
+              {layersEnabled ? '关闭' : '开启'}
+            </button>
+          </div>
+
+          {layersEnabled && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-content-muted block mb-1.5">
+                  分割轴向
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['x', 'y', 'z'] as LayerSplitAxis[]).map((axis) => (
+                    <button
+                      key={axis}
+                      onClick={() => {
+                        const newStrategy = {
+                          ...layerSplitStrategy,
+                          type: 'axis' as const,
+                          axis,
+                        };
+                        setLayerSplitStrategy(newStrategy);
+                        const displayModel = model || createSampleBoxModel();
+                        try {
+                          const layers = splitModel(displayModel, newStrategy);
+                          setModelLayers(layers);
+                        } catch (e) {
+                          console.error(e);
+                        }
+                      }}
+                      className={`py-1.5 text-xs rounded-md transition-all ${
+                        layerSplitStrategy.type === 'axis' &&
+                        layerSplitStrategy.axis === axis
+                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
+                          : 'bg-surface-inset text-content-muted hover:bg-surface-elevated border border-edge-subtle'
+                      }`}
+                    >
+                      {axis.toUpperCase()}轴
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-content-muted block mb-1.5">
+                  层数 (Y轴)
+                  {layerSplitStrategy.type === 'axis' && (
+                    <span className="text-purple-400 ml-1">
+                      {layerSplitStrategy.count}
+                    </span>
+                  )}
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[2, 3, 4, 6, 8, 10].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => {
+                        const newStrategy = {
+                          ...layerSplitStrategy,
+                          type: 'axis' as const,
+                          count: n,
+                        };
+                        setLayerSplitStrategy(newStrategy);
+                        const displayModel = model || createSampleBoxModel();
+                        try {
+                          const layers = splitModel(displayModel, newStrategy);
+                          setModelLayers(layers);
+                        } catch (e) {
+                          console.error(e);
+                        }
+                      }}
+                      className={`w-9 h-7 rounded text-[11px] font-medium transition-all ${
+                        layerSplitStrategy.type === 'axis' &&
+                        layerSplitStrategy.count === n
+                          ? 'bg-purple-500 text-white shadow-md shadow-purple-500/30'
+                          : 'bg-surface-inset text-content-muted hover:bg-surface-elevated border border-edge-subtle'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsLayerExploded(!isLayerExploded)}
+                  className={`flex-1 py-1.5 flex items-center justify-center gap-1 rounded-md text-xs transition-all ${
+                    isLayerExploded
+                      ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
+                      : 'bg-surface-inset text-content-muted hover:bg-surface-elevated border border-edge-subtle'
+                  }`}
+                >
+                  <Maximize2 size={12} />
+                  {isLayerExploded ? '组装' : '拆解'}
+                </button>
+                {isLayerExploded && (
+                  <div className="flex gap-1">
+                    {(['x', 'y', 'z'] as LayerSplitAxis[]).map((axis) => (
+                      <button
+                        key={axis}
+                        onClick={() => explodeLayersByAxis(axis)}
+                        className="w-8 h-7 rounded text-[10px] bg-surface-inset text-content-muted hover:bg-orange-500/20 hover:text-orange-400 border border-edge-subtle hover:border-orange-500/30 transition-all"
+                      >
+                        {axis.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <h3 className="text-sm font-semibold text-content-secondary mb-3">视图设置</h3>
