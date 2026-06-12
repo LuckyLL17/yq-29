@@ -319,11 +319,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     })),
   showAllLayers: () =>
     set((state) => ({
-      modelLayers: state.modelLayers.map((layer) => ({ ...layer, visible: true }),
+      modelLayers: state.modelLayers.map((layer) => ({ ...layer, visible: true })),
     })),
   hideAllLayers: () =>
     set((state) => ({
-      modelLayers: state.modelLayers.map((layer) => ({ ...layer, visible: false }),
+      modelLayers: state.modelLayers.map((layer) => ({ ...layer, visible: false })),
     })),
   resetLayerColors: () => {
     const palette = ['#6b8e9e', '#e07a5f', '#81b29a', '#f2cc8f', '#3d405b', '#e07a9a', '#56a3a6', '#c8b6ff', '#f0a88a', '#45b7d1', '#96ceb4', '#ffeaa7'];
