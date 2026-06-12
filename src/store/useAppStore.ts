@@ -125,7 +125,7 @@ interface AppState {
   resetAnalysis: () => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   model: null,
   modelFileName: '',
   model2: null,
@@ -250,7 +250,7 @@ export const useAppStore = create<AppState>((set) => ({
   updateAnnotation: (id, updates) =>
     set((state) => ({
       annotations: state.annotations.map((a) =>
-        a.id === id ? { ...a, ...updates } : a
+        a.id === id ? ({ ...a, ...updates } as Annotation) : a
       ),
     })),
   setAnnotationTool: (tool) => set({ annotationTool: tool }),

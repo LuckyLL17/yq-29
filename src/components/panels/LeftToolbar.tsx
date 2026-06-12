@@ -805,6 +805,7 @@ export function LeftToolbar() {
             )}
           </div>
         </div>
+      )}
 
       <div className="p-4 flex-1 overflow-y-auto">
         <div className="mb-5 pb-4 border-b border-edge-subtle">
