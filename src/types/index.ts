@@ -151,6 +151,11 @@ export interface FreehandAnnotation {
 
 export type Annotation = TextAnnotation | ArrowAnnotation | DimensionAnnotation | FreehandAnnotation;
 
+export interface TextAnnotationPrompt {
+  open: boolean;
+  pendingPosition: Vector3 | null;
+}
+
 export type SectionAxis = 'x' | 'y' | 'z';
 
 export interface SectionPlane {

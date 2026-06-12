@@ -13,6 +13,7 @@ import { SectionPlane } from './SectionPlane';
 import { SectionContour } from './SectionContour';
 import { Annotations3D } from './Annotations3D';
 import { AnnotationInteraction } from './AnnotationInteraction';
+import { TextAnnotationDialog } from '@/components/dialogs/TextAnnotationDialog';
 import { createSampleBoxModel } from '@/utils/modelLoader';
 import { computeSection } from '@/utils/section';
 
@@ -225,6 +226,7 @@ function CompareScene() {
               </div>
             </Html>
           )}
+          <Annotations3D />
         </group>
       ) : (
         <group>
@@ -264,8 +266,11 @@ function CompareScene() {
               </div>
             </Html>
           )}
+          <Annotations3D />
         </group>
       )}
+
+      <AnnotationInteraction />
 
       {showGrid && (
         <Grid
@@ -450,6 +455,8 @@ export function ModelViewer() {
           {analysisMode === 'compare' ? <CompareScene /> : <Scene />}
         </Suspense>
       </Canvas>
+
+      <TextAnnotationDialog />
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-surface-panel/80 backdrop-blur-sm">

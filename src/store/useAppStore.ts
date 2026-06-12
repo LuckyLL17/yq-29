@@ -61,6 +61,10 @@ interface AppState {
   annotationStyle: AnnotationStyle;
   selectedAnnotationId: string | null;
   isDrawingFreehand: boolean;
+  textAnnotationPrompt: {
+    open: boolean;
+    pendingPosition: Vector3 | null;
+  };
 
   sectionPlane: SectionPlane;
   sectionResult: SectionResult | null;
@@ -114,6 +118,9 @@ interface AppState {
   setSelectedAnnotationId: (id: string | null) => void;
   setIsDrawingFreehand: (drawing: boolean) => void;
   clearAnnotations: () => void;
+  openTextAnnotationPrompt: (position: Vector3) => void;
+  closeTextAnnotationPrompt: () => void;
+  confirmTextAnnotation: (text: string) => void;
 
   resetAnalysis: () => void;
 }
@@ -170,6 +177,10 @@ export const useAppStore = create<AppState>((set) => ({
   },
   selectedAnnotationId: null,
   isDrawingFreehand: false,
+  textAnnotationPrompt: {
+    open: false,
+    pendingPosition: null,
+  },
 
   sectionPlane: {
     axis: 'y',
@@ -249,6 +260,38 @@ export const useAppStore = create<AppState>((set) => ({
   setIsDrawingFreehand: (drawing) => set({ isDrawingFreehand: drawing }),
   clearAnnotations: () =>
     set({ annotations: [], selectedAnnotationId: null }),
+  openTextAnnotationPrompt: (position) =>
+    set({
+      textAnnotationPrompt: { open: true, pendingPosition: position },
+    }),
+  closeTextAnnotationPrompt: () =>
+    set({
+      textAnnotationPrompt: { open: false, pendingPosition: null },
+    }),
+  confirmTextAnnotation: (text) => {
+    const state = get();
+    const pos = state.textAnnotationPrompt.pendingPosition;
+    if (!pos || !text.trim()) {
+      set({
+        textAnnotationPrompt: { open: false, pendingPosition: null },
+      });
+      return;
+    }
+    const id = `ann_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    set({
+      annotations: [
+        ...state.annotations,
+        {
+          id,
+          type: 'text',
+          position: pos,
+          text: text.trim(),
+          style: { ...state.annotationStyle },
+        },
+      ],
+      textAnnotationPrompt: { open: false, pendingPosition: null },
+    });
+  },
 
   resetAnalysis: () =>
     set({

@@ -12,11 +12,13 @@ function useAnnotationInteraction() {
   const isDrawingFreehand = useAppStore((s) => s.isDrawingFreehand);
   const updateAnnotation = useAppStore((s) => s.updateAnnotation);
   const annotations = useAppStore((s) => s.annotations);
-  const setSelectedAnnotationId = useAppStore((s) => s.setSelectedAnnotationId);
+  const openTextAnnotationPrompt = useAppStore((s) => s.openTextAnnotationPrompt);
+  const textAnnotationPrompt = useAppStore((s) => s.textAnnotationPrompt);
 
   const pendingArrowStart = useRef<Vector3 | null>(null);
   const pendingDimensionStart = useRef<Vector3 | null>(null);
   const currentFreehandId = useRef<string | null>(null);
+  const pendingMouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const { raycaster, camera, scene, gl } = useThree();
 
   const getModelIntersection = useCallback(
@@ -29,7 +31,8 @@ function useAnnotationInteraction() {
 
       const meshes: THREE.Mesh[] = [];
       scene.traverse((child) => {
-        if ((child as THREE.Mesh).isMesh && !(child as any).isAnnotation) {
+        const c = child as any;
+        if (c.isMesh && !c.isAnnotation && !c.__annotationsGroupChild) {
           meshes.push(child as THREE.Mesh);
         }
       });
@@ -54,6 +57,17 @@ function useAnnotationInteraction() {
   const handleClick = useCallback(
     (event: MouseEvent) => {
       if (annotationTool === 'none') return;
+      if (textAnnotationPrompt.open) return;
+
+      if (pendingMouseDownPos.current) {
+        const dx = event.clientX - pendingMouseDownPos.current.x;
+        const dy = event.clientY - pendingMouseDownPos.current.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 5) {
+          pendingMouseDownPos.current = null;
+          return;
+        }
+        pendingMouseDownPos.current = null;
+      }
 
       const point = getModelIntersection(event);
       if (!point) return;
@@ -62,15 +76,7 @@ function useAnnotationInteraction() {
 
       switch (annotationTool) {
         case 'text': {
-          const text = prompt('请输入标注文字:');
-          if (!text) break;
-          addAnnotation({
-            id,
-            type: 'text',
-            position: point,
-            text,
-            style: { ...annotationStyle },
-          });
+          openTextAnnotationPrompt(point);
           break;
         }
         case 'arrow': {
@@ -114,11 +120,15 @@ function useAnnotationInteraction() {
         }
       }
     },
-    [annotationTool, annotationStyle, addAnnotation, getModelIntersection]
+    [annotationTool, annotationStyle, addAnnotation, getModelIntersection, openTextAnnotationPrompt, textAnnotationPrompt.open]
   );
 
   const handleMouseDown = useCallback(
     (event: MouseEvent) => {
+      if (textAnnotationPrompt.open) return;
+
+      pendingMouseDownPos.current = { x: event.clientX, y: event.clientY };
+
       if (annotationTool !== 'freehand') return;
       if (event.button !== 0) return;
 
@@ -136,7 +146,7 @@ function useAnnotationInteraction() {
         style: { ...annotationStyle },
       });
     },
-    [annotationTool, annotationStyle, addAnnotation, getModelIntersection, setIsDrawingFreehand]
+    [annotationTool, annotationStyle, addAnnotation, getModelIntersection, setIsDrawingFreehand, textAnnotationPrompt.open]
   );
 
   const handleMouseMove = useCallback(
@@ -166,18 +176,31 @@ function useAnnotationInteraction() {
   useEffect(() => {
     const canvas = gl.domElement;
 
-    canvas.addEventListener('click', handleClick);
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseup', handleMouseUp);
+    const preventOrbitWhenAnnotating = (e: Event) => {
+      if (annotationTool !== 'none' && !textAnnotationPrompt.open) {
+        e.stopImmediatePropagation();
+      }
+    };
+
+    canvas.addEventListener('click', handleClick, true);
+    canvas.addEventListener('mousedown', handleMouseDown, true);
+    canvas.addEventListener('mousemove', handleMouseMove, true);
+    canvas.addEventListener('mouseup', handleMouseUp, true);
+
+    canvas.addEventListener('pointerdown', preventOrbitWhenAnnotating, true);
+    canvas.addEventListener('pointermove', preventOrbitWhenAnnotating, true);
+    canvas.addEventListener('pointerup', preventOrbitWhenAnnotating, true);
 
     return () => {
-      canvas.removeEventListener('click', handleClick);
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('click', handleClick, true);
+      canvas.removeEventListener('mousedown', handleMouseDown, true);
+      canvas.removeEventListener('mousemove', handleMouseMove, true);
+      canvas.removeEventListener('mouseup', handleMouseUp, true);
+      canvas.removeEventListener('pointerdown', preventOrbitWhenAnnotating, true);
+      canvas.removeEventListener('pointermove', preventOrbitWhenAnnotating, true);
+      canvas.removeEventListener('pointerup', preventOrbitWhenAnnotating, true);
     };
-  }, [gl, handleClick, handleMouseDown, handleMouseMove, handleMouseUp]);
+  }, [gl, handleClick, handleMouseDown, handleMouseMove, handleMouseUp, annotationTool, textAnnotationPrompt.open]);
 
   return null;
 }
