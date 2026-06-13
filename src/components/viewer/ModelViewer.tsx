@@ -16,8 +16,10 @@ import { SectionPlane } from './SectionPlane';
 import { SectionContour } from './SectionContour';
 import { Annotations3D } from './Annotations3D';
 import { AnnotationInteraction } from './AnnotationInteraction';
+import { DrainHoleInteraction } from './DrainHoleInteraction';
 import { UndercutRegionsDisplay } from './UndercutRegionsDisplay';
 import { TextAnnotationDialog } from '@/components/dialogs/TextAnnotationDialog';
+import { HoleArrayDialog } from '@/components/dialogs/HoleArrayDialog';
 import { createSampleBoxModel } from '@/utils/modelLoader';
 import { computeSection } from '@/utils/section';
 
@@ -259,6 +261,7 @@ function CompareScene() {
       )}
 
       <AnnotationInteraction />
+      <DrainHoleInteraction />
 
       {showGrid && (
         <Grid
@@ -472,6 +475,7 @@ function Scene() {
       </group>
 
       <AnnotationInteraction />
+      <DrainHoleInteraction />
 
       {showGrid && (
         <Grid
@@ -538,6 +542,7 @@ export function ModelViewer() {
       </Canvas>
 
       <TextAnnotationDialog />
+      <HoleArrayDialog />
 
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-surface-panel/80 backdrop-blur-sm">

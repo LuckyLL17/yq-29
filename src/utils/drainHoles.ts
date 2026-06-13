@@ -129,7 +129,7 @@ export function planDrainHoles(
 }
 
 export function checkHoleCollision(
-  hole: DrainHole,
+  hole: Partial<DrainHole> & { position: Vector3; diameter: number; id?: string },
   existingHoles: DrainHole[],
   minSpacing: number
 ): CollisionCheckResult {
@@ -137,7 +137,7 @@ export function checkHoleCollision(
   let minDist = Infinity;
 
   for (const existing of existingHoles) {
-    if (existing.id === hole.id) continue;
+    if (hole.id && existing.id === hole.id) continue;
     const dist = distance(hole.position, existing.position);
     const minDistRequired = (hole.diameter + existing.diameter) / 2 + minSpacing;
     if (dist < minDistRequired) {
@@ -156,13 +156,24 @@ export function checkHoleCollision(
 }
 
 export function autoAvoidCollision(
-  hole: DrainHole,
+  hole: Partial<DrainHole> & { position: Vector3; normal: Vector3; diameter: number; id?: string },
   existingHoles: DrainHole[],
   minSpacing: number,
   maxAttempts: number = 20
 ): DrainHole | null {
-  const otherHoles = existingHoles.filter((h) => h.id !== hole.id);
-  let result = { ...hole };
+  const otherHoles = hole.id
+    ? existingHoles.filter((h) => h.id !== hole.id)
+    : existingHoles;
+  let result = { ...hole } as DrainHole;
+  if (!result.id) {
+    result.id = `temp-${Date.now()}`;
+  }
+  if (!result.type) {
+    result.type = 'dewatering';
+  }
+  if (!result.depth) {
+    result.depth = 5;
+  }
   const collision = checkHoleCollision(result, otherHoles, minSpacing);
 
   if (!collision.hasCollision) return result;

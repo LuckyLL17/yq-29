@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { estimateSurfaceArea } from '@/utils/drainHoles';
+import { estimateSurfaceArea, checkHoleCollision, autoAvoidCollision, generateRectangleArray, generateCircleArray } from '@/utils/drainHoles';
 import type {
   ModelData,
   DraftAngleResult,
@@ -24,6 +24,8 @@ import type {
   LayerSplitAxis,
   ThicknessColorScheme,
   HoleEditMode,
+  ArrayDialogState,
+  ArrayPatternType,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -65,6 +67,7 @@ interface AppState {
   selectedHoleId: string | null;
   holeEditMode: HoleEditMode;
   collisionEnabled: boolean;
+  arrayDialog: ArrayDialogState;
 
   cycleParameters: MoldingCycleParameters;
   cycleResult: MoldingCycleResult | null;
@@ -122,11 +125,14 @@ interface AppState {
   setSelectedHoleId: (id: string | null) => void;
   setHoleEditMode: (mode: HoleEditMode) => void;
   setCollisionEnabled: (enabled: boolean) => void;
-  addDrainHole: (hole: Partial<DrainHole>) => void;
+  addDrainHole: (hole: Partial<DrainHole>, skipCollision?: boolean) => void;
   removeDrainHole: (id: string) => void;
-  updateDrainHole: (id: string, updates: Partial<DrainHole>) => void;
+  updateDrainHole: (id: string, updates: Partial<DrainHole>, skipCollision?: boolean) => void;
   addDrainHoles: (holes: DrainHole[]) => void;
   clearDrainHoles: () => void;
+  openArrayDialog: (patternType: ArrayPatternType) => void;
+  closeArrayDialog: () => void;
+  generateArray: (params: any) => void;
 
   setCycleParameters: (params: Partial<MoldingCycleParameters>) => void;
   setCycleResult: (result: MoldingCycleResult | null) => void;
@@ -217,6 +223,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedHoleId: null,
   holeEditMode: 'none',
   collisionEnabled: true,
+  arrayDialog: {
+    open: false,
+    patternType: 'rectangle',
+  },
 
   cycleParameters: {
     materialType: '甘蔗浆',
@@ -479,31 +489,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   setSelectedHoleId: (id) => set({ selectedHoleId: id }),
   setHoleEditMode: (mode) => set({ holeEditMode: mode }),
   setCollisionEnabled: (enabled) => set({ collisionEnabled: enabled }),
-  addDrainHole: (hole) =>
+  addDrainHole: (hole, skipCollision = false) =>
     set((state) => {
       const currentResult = state.drainHoleResult;
       const model = state.model;
-      if (!currentResult) {
-        const newHole: DrainHole = {
-          id: `hole-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          position: hole.position || { x: 0, y: 0, z: 0 },
-          normal: hole.normal || { x: 0, y: 1, z: 0 },
-          diameter: hole.diameter || state.holeDiameter,
-          type: hole.type || 'dewatering',
-          depth: hole.depth || state.holeDepth,
-        };
-        return {
-          drainHoleResult: {
-            holes: [newHole],
-            totalCount: 1,
-            totalArea: Math.PI * Math.pow(newHole.diameter / 2, 2),
-            suctionCount: newHole.type === 'suction' ? 1 : 0,
-            dewateringCount: newHole.type === 'dewatering' ? 1 : 0,
-            recommendedDensity: 0,
-          },
-        };
-      }
-      const newHole: DrainHole = {
+      
+      const newHoleBase: DrainHole = {
         id: `hole-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         position: hole.position || { x: 0, y: 0, z: 0 },
         normal: hole.normal || { x: 0, y: 1, z: 0 },
@@ -511,7 +502,36 @@ export const useAppStore = create<AppState>((set, get) => ({
         type: hole.type || 'dewatering',
         depth: hole.depth || state.holeDepth,
       };
-      const newHoles = [...currentResult.holes, newHole];
+
+      let finalHole = newHoleBase;
+      const existingHoles = currentResult?.holes || [];
+
+      if (state.collisionEnabled && !skipCollision && existingHoles.length > 0) {
+        const collision = checkHoleCollision(newHoleBase, existingHoles, state.holeSpacing);
+        if (collision.hasCollision) {
+          const avoided = autoAvoidCollision(newHoleBase, existingHoles, state.holeSpacing);
+          if (avoided) {
+            finalHole = { ...finalHole, position: avoided.position };
+          } else {
+            return {};
+          }
+        }
+      }
+
+      if (!currentResult) {
+        return {
+          drainHoleResult: {
+            holes: [finalHole],
+            totalCount: 1,
+            totalArea: Math.PI * Math.pow(finalHole.diameter / 2, 2),
+            suctionCount: finalHole.type === 'suction' ? 1 : 0,
+            dewateringCount: finalHole.type === 'dewatering' ? 1 : 0,
+            recommendedDensity: 0,
+          },
+        };
+      }
+      
+      const newHoles = [...currentResult.holes, finalHole];
       const totalArea = newHoles.reduce(
         (sum, h) => sum + Math.PI * Math.pow(h.diameter / 2, 2),
         0
@@ -548,12 +568,33 @@ export const useAppStore = create<AppState>((set, get) => ({
         selectedHoleId: state.selectedHoleId === id ? null : state.selectedHoleId,
       };
     }),
-  updateDrainHole: (id, updates) =>
+  updateDrainHole: (id, updates, skipCollision = false) =>
     set((state) => {
       const currentResult = state.drainHoleResult;
       if (!currentResult) return {};
+      
+      const oldHole = currentResult.holes.find((h) => h.id === id);
+      if (!oldHole) return {};
+
+      let updatedHole = { ...oldHole, ...updates };
+      const otherHoles = currentResult.holes.filter((h) => h.id !== id);
+
+      const needsCollisionCheck = updates.position !== undefined || updates.diameter !== undefined;
+      
+      if (state.collisionEnabled && !skipCollision && needsCollisionCheck && otherHoles.length > 0) {
+        const collision = checkHoleCollision(updatedHole, otherHoles, state.holeSpacing);
+        if (collision.hasCollision) {
+          const avoided = autoAvoidCollision(updatedHole, otherHoles, state.holeSpacing);
+          if (avoided) {
+            updatedHole = { ...updatedHole, position: avoided.position };
+          } else {
+            return {};
+          }
+        }
+      }
+
       const newHoles = currentResult.holes.map((h) =>
-        h.id === id ? { ...h, ...updates } : h
+        h.id === id ? updatedHole : h
       );
       const totalArea = newHoles.reduce(
         (sum, h) => sum + Math.PI * Math.pow(h.diameter / 2, 2),
@@ -597,6 +638,103 @@ export const useAppStore = create<AppState>((set, get) => ({
       drainHoleResult: null,
       selectedHoleId: null,
       holeEditMode: 'none',
+    }),
+  openArrayDialog: (patternType) =>
+    set({
+      arrayDialog: {
+        open: true,
+        patternType,
+      },
+    }),
+  closeArrayDialog: () =>
+    set((state) => ({
+      arrayDialog: {
+        ...state.arrayDialog,
+        open: false,
+      },
+    })),
+  generateArray: (params) =>
+    set((state) => {
+      const model = state.model;
+      if (!model) return {};
+
+      const center = params.center || {
+        x: model.boundingBox.center.x,
+        y: model.boundingBox.max.y,
+        z: model.boundingBox.center.z,
+      };
+      const normal = params.normal || { x: 0, y: 1, z: 0 };
+
+      let holes: DrainHole[] = [];
+      
+      if (params.type === 'rectangle') {
+        holes = generateRectangleArray({
+          type: 'rectangle',
+          center,
+          normal,
+          xCount: params.xCount || 5,
+          yCount: params.yCount || 4,
+          xSpacing: params.xSpacing || state.holeSpacing,
+          ySpacing: params.ySpacing || state.holeSpacing,
+          diameter: params.diameter || state.holeDiameter,
+          depth: params.depth || state.holeDepth,
+          holeType: params.holeType || 'dewatering',
+        });
+      } else if (params.type === 'circle') {
+        holes = generateCircleArray({
+          type: 'circle',
+          center,
+          normal,
+          radius: params.radius || 30,
+          count: params.count || 12,
+          diameter: params.diameter || state.holeDiameter,
+          depth: params.depth || state.holeDepth,
+          holeType: params.holeType || 'dewatering',
+        });
+      }
+
+      if (state.collisionEnabled) {
+        const existingHoles = state.drainHoleResult?.holes || [];
+        holes = holes.filter((hole) => {
+          const collision = checkHoleCollision(hole, existingHoles, state.holeSpacing);
+          if (collision.hasCollision) {
+            const avoided = autoAvoidCollision(hole, existingHoles, state.holeSpacing);
+            if (avoided) {
+              hole.position = avoided.position;
+              return true;
+            }
+            return false;
+          }
+          return true;
+        });
+      }
+
+      if (holes.length === 0) return {};
+
+      const currentResult = state.drainHoleResult;
+      const newHoles = currentResult
+        ? [...currentResult.holes, ...holes]
+        : holes;
+      const totalArea = newHoles.reduce(
+        (sum, h) => sum + Math.PI * Math.pow(h.diameter / 2, 2),
+        0
+      );
+      const modelSurfaceArea = estimateSurfaceArea(model);
+
+      return {
+        arrayDialog: {
+          ...state.arrayDialog,
+          open: false,
+        },
+        drainHoleResult: {
+          holes: newHoles,
+          totalCount: newHoles.length,
+          totalArea,
+          suctionCount: newHoles.filter((h) => h.type === 'suction').length,
+          dewateringCount: newHoles.filter((h) => h.type === 'dewatering').length,
+          recommendedDensity: (totalArea / modelSurfaceArea) * 100,
+        },
+      };
     }),
 
   setCycleParameters: (params) =>

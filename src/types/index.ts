@@ -129,6 +129,11 @@ export interface CircleArrayParams {
 
 export type ArrayParams = RectangleArrayParams | CircleArrayParams;
 
+export interface ArrayDialogState {
+  open: boolean;
+  patternType: ArrayPatternType;
+}
+
 export type HoleExportFormat = 'dxf' | 'coords';
 
 export interface CollisionCheckResult {

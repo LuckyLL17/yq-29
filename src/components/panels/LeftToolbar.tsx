@@ -30,7 +30,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { loadModelFromFile, createSampleBoxModel, createSampleBowlModel } from '@/utils/modelLoader';
 import { analyzeDraftAngles } from '@/utils/draftAngle';
 import { analyzeWallThickness } from '@/utils/wallThickness';
-import { planDrainHoles, generateRectangleArray, generateCircleArray, exportToDXF, exportToCoordinates, downloadFile } from '@/utils/drainHoles';
+import { planDrainHoles, exportToDXF, exportToCoordinates, downloadFile } from '@/utils/drainHoles';
 import { estimateMoldingCycle, MATERIAL_OPTIONS } from '@/utils/moldingCycle';
 import { computeSection, getPlaneBounds } from '@/utils/section';
 import { computeModelDiff } from '@/utils/modelDiff';
@@ -100,6 +100,7 @@ export function LeftToolbar() {
   const addDrainHole = useAppStore((state) => state.addDrainHole);
   const clearDrainHoles = useAppStore((state) => state.clearDrainHoles);
   const addDrainHoles = useAppStore((state) => state.addDrainHoles);
+  const openArrayDialog = useAppStore((state) => state.openArrayDialog);
   const selectedHoleId = useAppStore((state) => state.selectedHoleId);
   const setSelectedHoleId = useAppStore((state) => state.setSelectedHoleId);
   const drainHoleResult = useAppStore((state) => state.drainHoleResult);
@@ -570,77 +571,18 @@ export function LeftToolbar() {
               </h4>
               <div className="space-y-2">
                 <button
-                  onClick={() => {
-                    if (!model) {
-                      alert('请先导入模型');
-                      return;
-                    }
-                    const center = {
-                      x: model.boundingBox.center.x,
-                      y: model.boundingBox.max.y - 5,
-                      z: model.boundingBox.center.z,
-                    };
-                    const holes = generateRectangleArray({
-                      type: 'rectangle',
-                      center,
-                      normal: { x: 0, y: 1, z: 0 },
-                      xCount: 5,
-                      yCount: 4,
-                      xSpacing: holeSpacing,
-                      ySpacing: holeSpacing,
-                      diameter: holeDiameter,
-                      depth: holeDepth,
-                      holeType: 'dewatering',
-                    });
-                    if (collisionEnabled && drainHoleResult) {
-                      const validHoles = holes.filter(
-                        (h) =>
-                          !drainHoleResult.holes.some(
-                            (existing) =>
-                              Math.sqrt(
-                                Math.pow(h.position.x - existing.position.x, 2) +
-                                  Math.pow(h.position.z - existing.position.z, 2)
-                              ) <
-                              (h.diameter + existing.diameter) / 2 + 1
-                          )
-                      );
-                      addDrainHoles(validHoles);
-                    } else {
-                      addDrainHoles(holes);
-                    }
-                  }}
+                  onClick={() => openArrayDialog('rectangle')}
                   className="w-full py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors flex items-center justify-center gap-2 border border-edge-subtle"
                 >
                   <Grid3X3 size={12} />
-                  矩形阵列 (5×4)
+                  矩形阵列
                 </button>
                 <button
-                  onClick={() => {
-                    if (!model) {
-                      alert('请先导入模型');
-                      return;
-                    }
-                    const center = {
-                      x: model.boundingBox.center.x,
-                      y: model.boundingBox.max.y - 5,
-                      z: model.boundingBox.center.z,
-                    };
-                    const holes = generateCircleArray({
-                      type: 'circle',
-                      center,
-                      normal: { x: 0, y: 1, z: 0 },
-                      radius: 30,
-                      count: 12,
-                      diameter: holeDiameter,
-                      depth: holeDepth,
-                      holeType: 'dewatering',
-                    });
-                    addDrainHoles(holes);
-                  }}
+                  onClick={() => openArrayDialog('circle')}
                   className="w-full py-2 bg-surface-elevated hover:bg-surface-hover text-content-secondary text-xs rounded-lg transition-colors flex items-center justify-center gap-2 border border-edge-subtle"
                 >
                   <CircleDot size={12} />
-                  环形阵列 (12孔)
+                  环形阵列
                 </button>
               </div>
             </div>
