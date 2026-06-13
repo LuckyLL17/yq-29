@@ -144,6 +144,15 @@ export interface CollisionCheckResult {
 
 export type HoleEditMode = 'none' | 'add' | 'move' | 'delete' | 'edit';
 
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface ToastMessage {
+  id: string;
+  type: ToastType;
+  message: string;
+  duration?: number;
+}
+
 export interface MoldingCycleParameters {
   materialType: string;
   targetThickness: number;

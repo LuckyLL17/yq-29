@@ -26,6 +26,8 @@ import type {
   HoleEditMode,
   ArrayDialogState,
   ArrayPatternType,
+  ToastMessage,
+  ToastType,
 } from '@/types';
 
 export type DialogType = 'none' | 'project' | 'settings' | 'help';
@@ -46,6 +48,7 @@ interface AppState {
   model2Color: string;
   isDarkMode: boolean;
   activeDialog: DialogType;
+  toasts: ToastMessage[];
 
   draftAngleThreshold: number;
   draftDirection: Vector3;
@@ -150,6 +153,8 @@ interface AppState {
   toggleDarkMode: () => void;
   setActiveDialog: (dialog: DialogType) => void;
   closeDialog: () => void;
+  showToast: (type: ToastType, message: string, duration?: number) => void;
+  hideToast: (id: string) => void;
 
   addAnnotation: (annotation: Annotation) => void;
   removeAnnotation: (id: string) => void;
@@ -243,6 +248,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   autoRotate: false,
   isDarkMode: true,
   activeDialog: 'none',
+  toasts: [],
 
   annotations: [],
   annotationTool: 'none',
@@ -761,6 +767,24 @@ export const useAppStore = create<AppState>((set, get) => ({
   toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
   setActiveDialog: (dialog) => set({ activeDialog: dialog }),
   closeDialog: () => set({ activeDialog: 'none' }),
+  showToast: (type, message, duration = 3000) =>
+    set((state) => {
+      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const newToast = { id, type, message, duration };
+      if (duration > 0) {
+        setTimeout(() => {
+          const s = (useAppStore.getState() as any);
+          if (s && s.hideToast) {
+            s.hideToast(id);
+          }
+        }, duration);
+      }
+      return { toasts: [...state.toasts, newToast] };
+    }),
+  hideToast: (id) =>
+    set((state) => ({
+      toasts: state.toasts.filter((t) => t.id !== id),
+    })),
 
   addAnnotation: (annotation) =>
     set((state) => ({ annotations: [...state.annotations, annotation] })),
